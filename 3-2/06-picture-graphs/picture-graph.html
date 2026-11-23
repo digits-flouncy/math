@@ -4,26 +4,26 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>그림그래프</title>
-<link rel="stylesheet" href="../../shared/tamheom.css?v=18" />
+<link rel="stylesheet" href="../../shared/tamheom.css?v=19" />
 <style>
   /* 그림그래프: [이름 | 그림] 표. 큰 그림·작은 그림은 크기로 구분 */
-  .pg { width: 100%; background: #fff; border: 3px solid var(--line); border-radius: 18px; padding: 10px 14px 8px; }
+  .pg { width: 100%; background: #fff; border: 3px solid var(--line); border-radius: 18px; padding: 10px 10px 8px; }
   .pg-title { text-align: center; font-size: 1.35rem; font-weight: 900; color: var(--accent); margin-bottom: 6px; }
   .pg-grid { display: grid; grid-template-columns: max-content minmax(0, 1fr); border: 2px solid #b9d4be; border-radius: 12px; overflow: hidden; }
   .pg-h { background: #e6f2e8; font-weight: 800; font-size: 1.15rem; padding: 6px 14px; text-align: center; white-space: nowrap; }
   .pg-h + .pg-h { border-left: 2px solid #b9d4be; }
   .pg-cat {
-    font-size: 1.3rem; font-weight: 800; padding: 0 12px; display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; font-weight: 800; padding: 0 10px; display: flex; align-items: center; justify-content: center;
     border-top: 2px solid var(--line); border-right: 2px solid #b9d4be; white-space: nowrap; transition: opacity .2s;
   }
   .pg-icons {
-    display: flex; align-items: center; flex-wrap: wrap; gap: 2px 2px; padding: 4px 10px; min-height: 62px;
+    display: flex; align-items: center; flex-wrap: wrap; gap: 4px 5px; padding: 4px 10px; min-height: 54px;
     border-top: 2px solid var(--line); transition: opacity .2s;
   }
   .ic { line-height: 1; display: inline-block; }
-  .ic-l { font-size: 38px; }
-  .ic-m { font-size: 28px; }
-  .ic-s { font-size: 20px; }
+  .ic-l { font-size: 30px; }
+  .ic-m { font-size: 23px; }
+  .ic-s { font-size: 16px; }
   /* 비대상 줄은 회색 대신 같은 색을 연하게 (이름은 연한 초록) */
   .pg-icons.is-dim { opacity: 0.4; }
   .pg-cat.is-dim { color: #9cc8a8; }
@@ -51,12 +51,13 @@
 
   /* 문제 문장 한 줄 + 오른쪽 풀이 */
   .q-line { font-size: 1.75rem; white-space: nowrap; margin: 10px 0 10px; }
-  .th-play .th-cols { align-items: start; grid-template-columns: minmax(0, 1.8fr) minmax(430px, 1fr); }
+  .th-play .th-cols { align-items: start; grid-template-columns: minmax(0, 2fr) minmax(390px, 1fr); }
   .th-play .th-visual { justify-content: flex-start; }
   .th-answer-col .th-bottom-play { display: none; }
   .fs-label .ic-l { font-size: 34px; vertical-align: middle; }
   .fs-label .ic-m { font-size: 26px; vertical-align: middle; }
   .fs-label .ic-s { font-size: 19px; vertical-align: middle; }
+  .fs-fin-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
   .fs-draw { font-size: 1.3rem; font-weight: 800; text-align: center; line-height: 1.4; }
   .pg-direct { display: flex; align-items: center; justify-content: center; gap: 10px; }
   .pg-direct[hidden], .pg-steps[hidden] { display: none; }
@@ -83,7 +84,7 @@
 </style>
 </head>
 <body>
-<script src="../../shared/tamheom.js?v=18"></script>
+<script src="../../shared/tamheom.js?v=19"></script>
 <script>
 (function () {
   const T = Tamheom;
@@ -206,10 +207,15 @@
       fin.appendChild(h('div', 'fs-draw', '✏️ 그래프에<br>그리기'));
     } else {
       finSlot = T.slot({ small: true, max: spec.fin.max || 2, label: '답' });
+      // 최종 칸: [앞말] 위, [칸 + 단위] 가운데, [뒷말] 아래 (좁은 자리에 세로로)
+      const col = h('div', 'fs-fin-col');
+      if (spec.fin.pre) col.appendChild(h('span', 'fs-unit', spec.fin.pre));
       const fr = h('div', 'fs-many-row');
       fr.appendChild(finSlot.el);
       fr.appendChild(h('span', 'fs-unit', spec.fin.unit));
-      fin.appendChild(fr);
+      col.appendChild(fr);
+      if (spec.fin.post) col.appendChild(h('span', 'fs-unit', spec.fin.post));
+      fin.appendChild(col);
     }
     box.appendChild(fin);
     steps.push({ fin: true, slots: finSlot ? [finSlot] : [], box: fin, wrongs: 0, help: spec.fin.help, row: spec.fin.row,
@@ -224,8 +230,9 @@
     let dSlot = null;
     if (spec.fin.kind === 'num') {
       dSlot = T.slot({ max: spec.fin.max || 2, label: '답' });
+      if (spec.fin.pre) direct.appendChild(h('span', 'unit', spec.fin.pre));
       direct.appendChild(dSlot.el);
-      direct.appendChild(h('span', 'unit', spec.fin.unit));
+      direct.appendChild(h('span', 'unit', spec.fin.unit + (spec.fin.post ? ' ' + spec.fin.post : '')));
     }
     right.appendChild(direct);
 
@@ -552,18 +559,18 @@
       left.appendChild(g.el);
       const len = String(Math.max(va, vb)).length;
       solver(right, ctx, {
-        head: `몇 ${u} 더 많아?`,
+        head: '두 줄을 읽고 빼요',
         rows: [
-          { label: A, unit: u, ans: va, max: len, row: p.a, help: `${A} 줄을 읽어요: ${fmt(va)}${u}`,
+          { label: josaW(A, '은', '는'), unit: u, ans: va, max: len, row: p.a, help: `${A} 줄을 읽어요: ${fmt(va)}${u}`,
             why: x => (x === iconCount(va, p.sc) ? `그림 개수 말고 ${u} 수를 읽어 보자` : '') },
-          { label: B, unit: u, ans: vb, max: len, row: p.b, help: `${B} 줄을 읽어요: ${fmt(vb)}${u}`,
+          { label: josaW(B, '은', '는'), unit: u, ans: vb, max: len, row: p.b, help: `${B} 줄을 읽어요: ${fmt(vb)}${u}`,
             why: x => (x === iconCount(vb, p.sc) ? `그림 개수 말고 ${u} 수를 읽어 보자` : '') }
         ],
         direct: level >= 2,
         focus: list => g.focus(list),
         rightMsg: '차이를 잘 구했어!',
         fin: {
-          kind: 'num', unit: `${u} 더`, ans: d, max: len, row: [p.a, p.b],
+          kind: 'num', pre: josaW(A, '이', '가'), unit: u, post: '더 많아', ans: d, max: len, row: [p.a, p.b],
           why: x => (x === va + vb ? '더하기 말고 빼기로 차이를 구해 보자'
                    : x === va || x === vb ? '두 수의 차이를 구해 보자'
                    : x === iconCount(va, p.sc) - iconCount(vb, p.sc) ? `그림 개수의 차이 말고 ${u} 수의 차이를 구해 보자` : ''),
@@ -579,14 +586,14 @@
     left.appendChild(g.el);
     const len = String(Math.max(...p.vals)).length;
     solver(right, ctx, {
-      head: `모두 몇 ${u}?`,
-      rows: p.vals.map((v, i) => ({ label: cats[i], unit: u, ans: v, max: len, row: i, help: `${cats[i]} 줄을 읽어요: ${fmt(v)}${u}`,
+      head: '줄마다 읽고 모두 더해요',
+      rows: p.vals.map((v, i) => ({ label: josaW(cats[i], '은', '는'), unit: u, ans: v, max: len, row: i, help: `${cats[i]} 줄을 읽어요: ${fmt(v)}${u}`,
         why: x => (x === iconCount(v, p.sc) ? `그림 개수 말고 ${u} 수를 읽어 보자` : '') })),
       direct: level >= 2,
       focus: list => g.focus(list),
       rightMsg: '모두 잘 더했어!',
       fin: {
-        kind: 'num', unit: u, ans: sum, max: String(sum).length, row: null,
+        kind: 'num', pre: '모두', unit: u, ans: sum, max: String(sum).length, row: null,
         why: x => (p.vals.some(v => x === sum - v) ? '빠진 줄이 없는지 보자. 모든 줄을 더해요' : ''),
         help: `${p.vals.map(fmt).join(' + ')} = ${fmt(sum)}`
       }

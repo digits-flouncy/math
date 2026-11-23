@@ -343,9 +343,8 @@
   function activity(cfg) {
     const id = cfg.id;
     const levels = cfg.levels;
-    // 홈 버튼은 이 활동의 단원 목록으로 (예: 3-2/05-fractions/… → index.html#3-2/5)
-    const unitM = location.pathname.match(/\/(\d-\d)\/(\d+)-[^/]+\/[^/]*$/);
-    const home = cfg.home || ('../../index.html' + (unitM ? `#${unitM[1]}/${parseInt(unitM[2], 10)}` : ''));
+    // 홈 버튼은 메인 첫 화면(학기 고르기)으로
+    const home = cfg.home || '../../index.html';
     const optionDefaults = {};
     (cfg.options || []).forEach(o => { optionDefaults[o.key] = o.value; });
     const getOpts = () => Object.assign({}, optionDefaults, store.get('opt:' + id, {}));
