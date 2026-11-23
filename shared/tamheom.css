@@ -219,3 +219,14 @@ body.th {
 .th-clip-title { width: 100%; font-weight: 700; font-size: 0.95rem; }
 .th-clip { display: inline-flex; align-items: center; }
 .th-file-btn { display: inline-flex; align-items: center; cursor: pointer; }
+
+/* 잠깐 떴다 사라지는 안내: 화면 아래 가운데 (activity 설정 toast: true, 또는 Tamheom.toast) */
+.th-toast {
+  position: fixed; left: 50%; bottom: 18px; transform: translate(-50%, 10px); z-index: 50;
+  width: max-content; max-width: 90vw; padding: 12px 26px; border-radius: 22px; font-size: 1.7rem; font-weight: 800; text-align: center;
+  background: var(--accent); color: #fff; box-shadow: 0 6px 20px rgba(0,0,0,.18);
+  opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s;
+}
+.th-toast.is-on { opacity: 1; transform: translate(-50%, 0); }
+.th-toast.is-retry { background: #b8741f; }
+.th-toast small { display: block; font-size: 1.1rem; font-weight: 700; margin-top: 4px; }
