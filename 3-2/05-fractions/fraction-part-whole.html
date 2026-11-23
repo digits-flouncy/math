@@ -35,15 +35,16 @@
   .badge text { fill: #fff; font-weight: 900; font-size: 30px; text-anchor: middle; dominant-baseline: central; }
 
   /* 그림 아래: 묶기 안내 한 줄 + 버튼 한 줄 (높이 고정이라 화면이 흔들리지 않음) */
-  .draw-bar { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 8px; }
-  .draw-tip { font-size: 1.2rem; font-weight: 700; color: var(--ink-soft); min-height: 1.6em; padding: 2px 14px; border-radius: 12px; }
+  .draw-bar { display: flex; flex-direction: row; flex-wrap: nowrap; justify-content: center; align-items: center; gap: 8px; margin-top: 8px; white-space: nowrap; }
+  .draw-tip { font-size: 1.2rem; font-weight: 700; color: var(--ink-soft); min-height: 1.6em; padding: 2px 6px; border-radius: 12px; }
   .draw-tip b { color: var(--accent); }
   .draw-tip.is-retry { color: var(--retry); background: var(--retry-soft); }
   .draw-tip.is-info { color: var(--accent); background: var(--accent-soft); }
   .draw-btns { display: flex; align-items: center; gap: 10px; }
   .draw-btns.is-off { visibility: hidden; }
-  .draw-bar .th-btn { padding: 6px 14px; font-size: 1rem; min-height: 0; }
-  .draw-count { font-weight: 800; color: var(--den); font-size: 1.1rem; }
+  .draw-bar .th-btn { padding: 6px 14px; font-size: 1.2rem; font-weight: 700; min-height: 0; }
+  .draw-tip:empty { display: none; }
+  .draw-count { font-weight: 800; color: var(--den); font-size: 1.2rem; }
 
   /* 풀이 단계 (오른쪽) */
   /* ①·②는 나란히 정사각형 타일, ③은 아래 한 줄 */
@@ -59,7 +60,9 @@
   .step.is-done { opacity: 1; }
   /* 글 | 칸 | 단위 — 세 줄의 칸이 같은 자리에 오게 */
   .step-row { display: grid; grid-template-columns: 1fr 64px 2.6em; align-items: center; gap: 8px; font-weight: 800; font-size: 1.15rem; }
+  .steps > .step:not(.tile) .step-row { display: flex; justify-content: center; gap: 12px; }
   .steps > .step:not(.tile) .step-row > :first-child { font-size: 1.5rem; }
+  .steps > .step:not(.tile) .step-row > :empty { display: none; }
   .step-row > :nth-child(2) { justify-self: center; }
   .step-row .th-slot-sm { height: 48px; width: 58px; font-size: 1.5rem; }
   .step-row .th-frac { gap: 4px; }
@@ -483,7 +486,7 @@
         picWrap.appendChild(field.el);
         if (interactive) {
           startTip = p.t === 'what'
-            ? `✏️ <b>${p.s}마리씩</b> 동그라미를 그려 묶어요`
+            ? `✏️ <b>${p.s}마리씩</b> 동그라미로 묶어요`
             : `✏️ 똑같이 <b>${p.d}묶음</b>이 되게 묶어요`;
           drawSay(startTip);
           cnt.textContent = '';
