@@ -414,12 +414,20 @@
       fitting = true;
       const before = parseFloat(app.style.zoom) || 1;
       app.style.zoom = '1';
-      const h = app.offsetHeight;
-      const w = app.offsetWidth;
+      app.style.maxWidth = '';
       const vh = global.innerHeight, vw = global.innerWidth;
-      let z = Math.min(1.5, (vh - 2) / h);
-      if (vw > w) z = Math.min(z, vw / w); else z = Math.min(z, 1);
-      z = Math.max(0.7, Math.floor(z * 100) / 100);
+      const scaleFor = () => {
+        const h = app.offsetHeight, w = app.offsetWidth;
+        let z = Math.min(1.5, (vh - 2) / h);
+        if (vw > w) z = Math.min(z, vw / w); else z = Math.min(z, 1);
+        return Math.max(0.7, Math.floor(z * 100) / 100);
+      };
+      let z = scaleFor();
+      // 높이 때문에 덜 키워져서 양옆이 비면, 틀을 화면 폭까지 넓힘 (아이패드 가로)
+      for (let i = 0; i < 3 && vw / z > app.offsetWidth + 60; i++) {
+        app.style.maxWidth = Math.floor(Math.min(vw / z - 24, 1900)) + 'px';
+        z = scaleFor();
+      }
       app.style.zoom = String(Math.abs(z - before) < 0.01 ? before : z);
       fitting = false;
     }
