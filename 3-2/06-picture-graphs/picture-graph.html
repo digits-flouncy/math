@@ -17,13 +17,15 @@
     border-top: 2px solid var(--line); border-right: 2px solid #b9d4be; white-space: nowrap; transition: opacity .2s;
   }
   .pg-icons {
-    display: flex; align-items: center; flex-wrap: wrap; gap: 4px 4px; padding: 6px 10px; min-height: 80px;
+    display: flex; align-items: center; flex-wrap: wrap; gap: 4px 3px; padding: 6px 8px; min-height: 80px;
     border-top: 2px solid var(--line); transition: opacity .2s;
   }
   .ic { line-height: 1; display: inline-block; }
-  .ic-l { font-size: 32px; }
-  .ic-m { font-size: 26px; }
-  .ic-s { font-size: 21px; }
+  .ic-l { font-size: 37px; }
+  .ic-m { font-size: 31px; }
+  .ic-s { font-size: 27px; }
+  /* 100·50·10 그림: 세 크기가 잘 구분되게 */
+  .sc3 .ic-l { font-size: 40px; } .sc3 .ic-m { font-size: 31px; } .sc3 .ic-s { font-size: 23px; }
   /* 비대상 줄은 회색 대신 같은 색을 연하게 (이름은 연한 초록) */
   .pg-icons.is-dim { opacity: 0.4; }
   .pg-cat.is-dim { color: #9cc8a8; }
@@ -51,7 +53,10 @@
 
   /* 문제 문장 한 줄 + 오른쪽 풀이 */
   .q-line { font-size: 1.75rem; white-space: nowrap; margin: 10px 0 10px; }
-  .th-play .th-cols { align-items: start; grid-template-columns: minmax(0, 2fr) minmax(390px, 1fr); }
+  .th-play .th-cols { align-items: start; grid-template-columns: minmax(0, 2fr) minmax(350px, 1fr); }
+  .th-play .th-q { padding-left: 14px; padding-right: 14px; }
+  .th-play .th-cols { gap: 16px; }
+  .th-play .th-cols > .th-answer-col { padding-left: 14px; }
   .th-play .th-visual { justify-content: flex-start; }
   .th-answer-col .th-bottom-play { display: none; }
   .fs-label .ic-l { font-size: 34px; vertical-align: middle; }
@@ -150,7 +155,7 @@
   function makeGraph(p, opts) {
     opts = opts || {};
     const th = THEMES[p.th], vs = SCALES[p.sc];
-    const el = h('div', 'pg');
+    const el = h('div', 'pg' + (vs.length === 3 ? ' sc3' : ''));
     el.appendChild(h('div', 'pg-title', th.title));
     const grid = h('div', 'pg-grid');
     grid.appendChild(h('div', 'pg-h', th.head));
@@ -440,7 +445,7 @@
     target.cat.classList.add('is-target'); target.icons.classList.add('is-target');
 
     // 순서: 그릴 줄(이름 칸)을 눌러 먼저 고르고 → 아래 그림 버튼을 누를 때마다 그 줄에 하나씩 들어감
-    const tools = h('div', 'pg-tools is-wait');
+    const tools = h('div', 'pg-tools is-wait' + (vs.length === 3 ? ' sc3' : ''));
     let picked = false, locked = false;
     const counts = vs.map(() => 0);
     const MAX = 20;
