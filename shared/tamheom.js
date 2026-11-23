@@ -62,11 +62,19 @@
   // 말할 때마다 다시 찾고, 한국어 목소리가 없으면 외국어 목소리로 읽지 않고 조용히 넘어갑니다.
   let koVoice = null;
   const isKo = v => /^ko([-_]|$)/i.test(v.lang || '');
+  // 맥의 크롬에서는 Yuna 목소리가 외국어 목소리로 바뀌어 나오는 문제가 있어서
+  // (크롬 전용 "Google 한국의" 목소리가 있을 때) Yuna는 목록에서 뺍니다. 사파리·아이패드에서는 Yuna를 씁니다.
+  function usableKoVoices() {
+    const all = global.speechSynthesis.getVoices().filter(isKo);
+    const chromeLike = all.some(v => /^google/i.test(v.name));
+    return chromeLike ? all.filter(v => !/yuna|유나/i.test(v.name)) : all;
+  }
   function pickVoice() {
     try {
-      const voices = global.speechSynthesis.getVoices().filter(isKo);
+      const voices = usableKoVoices();
       const saved = loadSettings().voiceName;
       koVoice = (saved && voices.find(v => v.name === saved)) ||
+                voices.find(v => /^google/i.test(v.name)) ||
                 voices.find(v => /yuna|유나/i.test(v.name) && v.localService) ||
                 voices.find(v => /yuna|유나/i.test(v.name)) ||
                 voices.find(v => v.localService) ||
@@ -590,7 +598,7 @@
         '2단계부터 힌트가 이 시간 뒤에 나타나요. 틀리면 바로 나와요.'));
       body.appendChild(seg('바로 3번 맞히면 단계 올리기', onOff, s.autoUp, v => upd('autoUp', v)));
       body.appendChild(seg('한 문제를 2번 틀리면 단계 낮추기', onOff, s.autoDown, v => upd('autoDown', v)));
-      const koVoices = hasSpeech ? global.speechSynthesis.getVoices().filter(isKo) : [];
+      const koVoices = hasSpeech ? usableKoVoices() : [];
       if (koVoices.length > 1) {
         body.appendChild(seg('목소리 고르기',
           koVoices.map(v => ({ value: v.name, label: v.name.replace(/\s*\(.*\)$/, '') })),
