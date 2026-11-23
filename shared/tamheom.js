@@ -257,10 +257,15 @@
     // opts: { slots, onCheck, checkLabel }
     const wrap = h('div', 'th-answer');
     const pad = h('div', 'th-keypad');
-    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'back', '0', 'clear'];
+    // checkInPad: '지우기' 자리에 확인 버튼을 넣음 (아래 긴 확인 버튼 없음)
+    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'back', '0', opts.checkInPad ? 'check' : 'clear'];
     const api = { el: wrap, slots: [], active: null };
 
+    const check = h('button', 'th-btn th-btn-primary th-check' + (opts.checkInPad ? ' th-key th-key-check' : ''), opts.checkInPad ? '확인' : (opts.checkLabel || '확인 🎯'));
+    check.type = 'button';
+    check.addEventListener('click', () => opts.onCheck && opts.onCheck());
     keys.forEach(k => {
+      if (k === 'check') { pad.appendChild(check); return; }
       const b = h('button', 'th-key' + (k.length > 1 ? ' th-key-fn' : ''));
       b.type = 'button';
       b.textContent = k === 'back' ? '⌫' : k === 'clear' ? '지우기' : k;
@@ -268,11 +273,8 @@
       b.addEventListener('click', () => press(k));
       pad.appendChild(b);
     });
-    const check = h('button', 'th-btn th-btn-primary th-check', opts.checkLabel || '확인 🎯');
-    check.type = 'button';
-    check.addEventListener('click', () => opts.onCheck && opts.onCheck());
     wrap.appendChild(pad);
-    wrap.appendChild(check);
+    if (!opts.checkInPad) wrap.appendChild(check);
 
     function select(s) {
       api.slots.forEach(x => x.el.classList.remove('is-active'));
@@ -403,8 +405,14 @@
     if (cfg.oneLineTop) {
       app.classList.add('th-oneline');
       const top = $('.th-top'), sound = $('.th-sound');
+      const leftBox = h('div', 'th-top-left'), rightBox = h('div', 'th-top-right');
+      top.insertBefore(leftBox, top.firstChild);
+      leftBox.appendChild(top.querySelector('.th-icon-btn'));
+      leftBox.appendChild($('.th-title'));
       top.insertBefore($('.th-pads'), sound);
-      top.insertBefore($('.th-level-tag'), sound);
+      top.appendChild(rightBox);
+      rightBox.appendChild($('.th-level-tag'));
+      rightBox.appendChild(sound);
     }
     function show(name) {
       Object.entries(screens).forEach(([k, el]) => { el.classList.toggle('is-shown', k === name); });
