@@ -226,24 +226,28 @@
     el.type = 'button';
     el.setAttribute('aria-label', opts.label || '숫자 칸');
     let value = '';
+    let wrongValue = null;   // 틀려서 비운 칸의 마지막 답 (안내 문구를 고를 때만 씀)
     const s = {
       el, max,
       get value() { return value; },
-      get number() { return value === '' ? NaN : parseInt(value, 10); },
-      set(v) { value = String(v); el.textContent = value; el.classList.remove('is-wrong'); },
-      clear() { value = ''; el.textContent = ''; el.classList.remove('is-wrong', 'is-right'); },
+      get number() { return value === '' ? (wrongValue == null ? NaN : wrongValue) : parseInt(value, 10); },
+      set(v) { value = String(v); wrongValue = null; el.textContent = value; el.classList.remove('is-wrong'); },
+      clear() { value = ''; wrongValue = null; el.textContent = ''; el.classList.remove('is-wrong', 'is-right'); },
       type(d) {
         if (el.classList.contains('is-right') || el.disabled) return false;
         if (value.length >= max) return false;
+        wrongValue = null;
         value = (value === '0' ? '' : value) + d;
         el.textContent = value;
         el.classList.remove('is-wrong');
         return value.length >= max;
       },
-      back() { value = value.slice(0, -1); el.textContent = value; el.classList.remove('is-wrong'); },
+      back() { value = value.slice(0, -1); wrongValue = null; el.textContent = value; el.classList.remove('is-wrong'); },
       mark(state) {
         el.classList.remove('is-wrong', 'is-right');
         if (state) el.classList.add('is-' + state);
+        // 틀리면 칸을 바로 비움 (테두리 색으로 틀린 칸을 알려 주고, 아이가 새로 씀)
+        if (state === 'wrong' && value !== '') { wrongValue = parseInt(value, 10); value = ''; el.textContent = ''; }
       },
       lock() { el.disabled = true; }
     };
@@ -339,9 +343,8 @@
   function activity(cfg) {
     const id = cfg.id;
     const levels = cfg.levels;
-    // 홈 버튼은 이 활동의 단원 목록으로 (예: 3-2/05-fractions/… → index.html#3-2/5)
-    const unitM = location.pathname.match(/\/(\d-\d)\/(\d+)-[^/]+\/[^/]*$/);
-    const home = cfg.home || ('../../index.html' + (unitM ? `#${unitM[1]}/${parseInt(unitM[2], 10)}` : ''));
+    // 홈 버튼은 메인 첫 화면(학기 고르기)으로
+    const home = cfg.home || '../../index.html';
     const optionDefaults = {};
     (cfg.options || []).forEach(o => { optionDefaults[o.key] = o.value; });
     const getOpts = () => Object.assign({}, optionDefaults, store.get('opt:' + id, {}));

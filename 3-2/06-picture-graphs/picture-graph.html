@@ -4,26 +4,26 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>그림그래프</title>
-<link rel="stylesheet" href="../../shared/tamheom.css?v=17" />
+<link rel="stylesheet" href="../../shared/tamheom.css?v=19" />
 <style>
   /* 그림그래프: [이름 | 그림] 표. 큰 그림·작은 그림은 크기로 구분 */
-  .pg { width: 100%; background: #fff; border: 3px solid var(--line); border-radius: 18px; padding: 10px 14px 8px; }
+  .pg { width: 100%; background: #fff; border: 3px solid var(--line); border-radius: 18px; padding: 10px 10px 8px; }
   .pg-title { text-align: center; font-size: 1.35rem; font-weight: 900; color: var(--accent); margin-bottom: 6px; }
   .pg-grid { display: grid; grid-template-columns: max-content minmax(0, 1fr); border: 2px solid #b9d4be; border-radius: 12px; overflow: hidden; }
   .pg-h { background: #e6f2e8; font-weight: 800; font-size: 1.15rem; padding: 6px 14px; text-align: center; white-space: nowrap; }
   .pg-h + .pg-h { border-left: 2px solid #b9d4be; }
   .pg-cat {
-    font-size: 1.3rem; font-weight: 800; padding: 0 12px; display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; font-weight: 800; padding: 0 10px; display: flex; align-items: center; justify-content: center;
     border-top: 2px solid var(--line); border-right: 2px solid #b9d4be; white-space: nowrap; transition: opacity .2s;
   }
   .pg-icons {
-    display: flex; align-items: center; flex-wrap: wrap; gap: 2px 2px; padding: 4px 10px; min-height: 62px;
+    display: flex; align-items: center; flex-wrap: wrap; gap: 4px 5px; padding: 4px 10px; min-height: 54px;
     border-top: 2px solid var(--line); transition: opacity .2s;
   }
   .ic { line-height: 1; display: inline-block; }
-  .ic-l { font-size: 38px; }
-  .ic-m { font-size: 28px; }
-  .ic-s { font-size: 20px; }
+  .ic-l { font-size: 30px; }
+  .ic-m { font-size: 23px; }
+  .ic-s { font-size: 16px; }
   /* 비대상 줄은 회색 대신 같은 색을 연하게 (이름은 연한 초록) */
   .pg-icons.is-dim { opacity: 0.4; }
   .pg-cat.is-dim { color: #9cc8a8; }
@@ -34,26 +34,30 @@
   /* 그리기 (나타내기) */
   .pg-cell.is-target { background: #fffbe8; cursor: pointer; }
   .pg-icons.is-target { outline: 3px dashed #e0b34a; outline-offset: -5px; flex-wrap: wrap; }
-  .pg-icons.is-target:empty::after { content: '여기를 눌러 그려요'; color: #b8862a; font-size: 1.1rem; font-weight: 700; }
+  .pg-icons.is-target:empty::after { content: '먼저 여기를 눌러 골라요'; color: #b8862a; font-size: 1.1rem; font-weight: 700; }
+  .pg-icons.is-target.is-picked:empty::after { content: '아래 그림을 눌러 넣어요'; }
+  .pg-cell.is-picked { background: #ffeeb0; }
+  .pg-cat.is-picked { box-shadow: inset 6px 0 0 #e0a820; }
+  .pg-icons.is-picked { outline-style: solid; outline-color: #e0a820; }
+  .pg-tools.is-wait .tool:not(.tool-fn) { opacity: 0.5; }
   .pg-tools { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: nowrap; white-space: nowrap; }
   .pg-tools.is-off { visibility: hidden; }
   .tool {
     min-height: 66px; padding: 4px 14px; border-radius: 16px; border: 3px solid var(--line); background: #fff;
     font-size: 1.2rem; font-weight: 800; color: var(--ink); display: inline-flex; align-items: center; gap: 8px;
-    cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+    cursor: pointer; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   }
-  .tool.is-on { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 3px var(--accent-soft); }
   .tool-fn { font-size: 1.15rem; color: var(--ink-soft); padding: 4px 14px; }
-  .pg-ghost { position: fixed; z-index: 60; pointer-events: none; transform: translate(-50%, -50%); line-height: 1; }
 
   /* 문제 문장 한 줄 + 오른쪽 풀이 */
   .q-line { font-size: 1.75rem; white-space: nowrap; margin: 10px 0 10px; }
-  .th-play .th-cols { align-items: start; grid-template-columns: minmax(0, 1.8fr) minmax(430px, 1fr); }
+  .th-play .th-cols { align-items: start; grid-template-columns: minmax(0, 2fr) minmax(390px, 1fr); }
   .th-play .th-visual { justify-content: flex-start; }
   .th-answer-col .th-bottom-play { display: none; }
   .fs-label .ic-l { font-size: 34px; vertical-align: middle; }
   .fs-label .ic-m { font-size: 26px; vertical-align: middle; }
   .fs-label .ic-s { font-size: 19px; vertical-align: middle; }
+  .fs-fin-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
   .fs-draw { font-size: 1.3rem; font-weight: 800; text-align: center; line-height: 1.4; }
   .pg-direct { display: flex; align-items: center; justify-content: center; gap: 10px; }
   .pg-direct[hidden], .pg-steps[hidden] { display: none; }
@@ -80,7 +84,7 @@
 </style>
 </head>
 <body>
-<script src="../../shared/tamheom.js?v=17"></script>
+<script src="../../shared/tamheom.js?v=19"></script>
 <script>
 (function () {
   const T = Tamheom;
@@ -203,10 +207,15 @@
       fin.appendChild(h('div', 'fs-draw', '✏️ 그래프에<br>그리기'));
     } else {
       finSlot = T.slot({ small: true, max: spec.fin.max || 2, label: '답' });
+      // 최종 칸: [앞말] 위, [칸 + 단위] 가운데, [뒷말] 아래 (좁은 자리에 세로로)
+      const col = h('div', 'fs-fin-col');
+      if (spec.fin.pre) col.appendChild(h('span', 'fs-unit', spec.fin.pre));
       const fr = h('div', 'fs-many-row');
       fr.appendChild(finSlot.el);
       fr.appendChild(h('span', 'fs-unit', spec.fin.unit));
-      fin.appendChild(fr);
+      col.appendChild(fr);
+      if (spec.fin.post) col.appendChild(h('span', 'fs-unit', spec.fin.post));
+      fin.appendChild(col);
     }
     box.appendChild(fin);
     steps.push({ fin: true, slots: finSlot ? [finSlot] : [], box: fin, wrongs: 0, help: spec.fin.help, row: spec.fin.row,
@@ -221,8 +230,9 @@
     let dSlot = null;
     if (spec.fin.kind === 'num') {
       dSlot = T.slot({ max: spec.fin.max || 2, label: '답' });
+      if (spec.fin.pre) direct.appendChild(h('span', 'unit', spec.fin.pre));
       direct.appendChild(dSlot.el);
-      direct.appendChild(h('span', 'unit', spec.fin.unit));
+      direct.appendChild(h('span', 'unit', spec.fin.unit + (spec.fin.post ? ' ' + spec.fin.post : '')));
     }
     right.appendChild(direct);
 
@@ -411,14 +421,15 @@
     const target = g.rows[p.k];
     target.cat.classList.add('is-target'); target.icons.classList.add('is-target');
 
-    // 도구: 큰/작은 그림 고르기(누르기) 또는 끌어다 놓기, 하나 빼기, 다시
-    const tools = h('div', 'pg-tools');
-    let tool = 0, locked = false;
+    // 순서: 그릴 줄(이름 칸)을 눌러 먼저 고르고 → 아래 그림 버튼을 누를 때마다 그 줄에 하나씩 들어감
+    const tools = h('div', 'pg-tools is-wait');
+    let picked = false, locked = false;
     const counts = vs.map(() => 0);
     const MAX = 20;
     const toolBtns = vs.map((u, k) => {
-      const b = h('button', 'tool' + (k === 0 ? ' is-on' : ''), `${ic(th, p.sc, k)} ${fmt(u)}${th.unit}`);
+      const b = h('button', 'tool', `${ic(th, p.sc, k)} ${fmt(u)}${th.unit}`);
       b.type = 'button';
+      b.addEventListener('click', () => add(k));
       tools.appendChild(b);
       return b;
     });
@@ -430,48 +441,22 @@
 
     const order = [];   // 넣은 순서 (하나 빼기)
     function paint() { g.setCounts(p.k, counts); }
+    function pickRow() {
+      if (locked || picked) return;
+      picked = true;
+      target.cat.classList.add('is-picked'); target.icons.classList.add('is-picked');
+      tools.classList.remove('is-wait');
+      T.toast(`${cat} 줄을 골랐어! 아래 그림을 눌러 넣어 보자`, 'info');
+    }
     function add(k) {
       if (locked) return;
+      if (!picked) { T.toast(`먼저 <b>${cat}</b> 줄을 눌러서 골라 보자`, 'info'); return; }
       if (counts.reduce((a, b) => a + b, 0) >= MAX) { T.toast('그림이 너무 많아. 큰 그림을 써 보자', 'retry'); return; }
       counts[k] += 1; order.push(k); paint();
     }
-    function pickTool(k) { tool = k; toolBtns.forEach((b, i) => b.classList.toggle('is-on', i === k)); }
     undo.addEventListener('click', () => { if (locked || !order.length) return; counts[order.pop()] -= 1; paint(); });
     reset.addEventListener('click', () => { if (locked) return; counts.fill(0); order.length = 0; paint(); });
-    [target.cat, target.icons].forEach(c => c.addEventListener('click', () => add(tool)));
-
-    // 펜슬·손가락으로 끌어다 놓기 (누르기만 하면 그 그림을 고름)
-    toolBtns.forEach((b, k) => {
-      let start = null, ghost = null, pid = null;
-      b.addEventListener('pointerdown', e => {
-        if (locked) return;
-        pid = e.pointerId; start = [e.clientX, e.clientY];
-        try { b.setPointerCapture(pid); } catch (err) {}
-        pickTool(k);
-        e.preventDefault();
-      });
-      b.addEventListener('pointermove', e => {
-        if (e.pointerId !== pid || !start) return;
-        if (!ghost && Math.hypot(e.clientX - start[0], e.clientY - start[1]) > 12) {
-          ghost = h('span', `pg-ghost ic ic-${SIZE[vs.length][k]}`, th.icon);
-          document.body.appendChild(ghost);
-        }
-        if (ghost) { ghost.style.left = e.clientX + 'px'; ghost.style.top = e.clientY + 'px'; }
-      });
-      const end = e => {
-        if (e.pointerId !== pid) return;
-        pid = null; start = null;
-        if (ghost) {
-          ghost.remove(); ghost = null;
-          const under = document.elementFromPoint(e.clientX, e.clientY);
-          const cell = under && under.closest && under.closest('[data-row]');
-          if (cell && +cell.dataset.row === p.k) add(k);
-          else T.toast('노란 칸에 놓아 보자', 'info');
-        }
-      };
-      b.addEventListener('pointerup', end);
-      b.addEventListener('pointercancel', e => { if (e.pointerId === pid) { pid = null; start = null; if (ghost) { ghost.remove(); ghost = null; } } });
-    });
+    [target.cat, target.icons].forEach(c => c.addEventListener('click', pickRow));
 
     const nmu = k => `${nm[k]} 그림`;
     const rows = vs.map((u, k) => ({
@@ -489,14 +474,14 @@
       rows,
       direct: false,
       rightMsg: '그림그래프를 잘 그렸어!',
-      onRight() { locked = true; tools.classList.add('is-off'); target.cat.classList.remove('is-target'); target.icons.classList.remove('is-target'); },
+      onRight() { locked = true; tools.classList.add('is-off'); ['is-target', 'is-picked'].forEach(c => { target.cat.classList.remove(c); target.icons.classList.remove(c); }); },
       fin: {
         kind: 'draw',
         help: `${vs.map((u, k) => `${nmu(k)} ${cnt[k]}개`).join(', ')} 그려요`,
         check() {
           const total = counts.reduce((s, c, k) => s + c * vs[k], 0);
           if (counts.every((c, k) => c === cnt[k])) return { ok: true };
-          if (counts.every(c => c === 0)) return { ok: false, why: '노란 칸을 눌러서 그림을 그려 보자' };
+          if (counts.every(c => c === 0)) return { ok: false, why: picked ? '아래 그림 버튼을 눌러서 그려 보자' : `${cat} 줄을 눌러 고르고, 아래 그림을 눌러 그려 보자` };
           if (total === v) return { ok: false, why: p.sc === 's1'
             ? `수는 맞아! 작은 그림 10개는 큰 그림 1개로 바꿔 그려요`
             : `수는 맞아! 그림 수가 가장 적게 되도록 큰 그림부터 그려요` };
@@ -574,18 +559,18 @@
       left.appendChild(g.el);
       const len = String(Math.max(va, vb)).length;
       solver(right, ctx, {
-        head: `몇 ${u} 더 많아?`,
+        head: '두 줄을 읽고 빼요',
         rows: [
-          { label: A, unit: u, ans: va, max: len, row: p.a, help: `${A} 줄을 읽어요: ${fmt(va)}${u}`,
+          { label: josaW(A, '은', '는'), unit: u, ans: va, max: len, row: p.a, help: `${A} 줄을 읽어요: ${fmt(va)}${u}`,
             why: x => (x === iconCount(va, p.sc) ? `그림 개수 말고 ${u} 수를 읽어 보자` : '') },
-          { label: B, unit: u, ans: vb, max: len, row: p.b, help: `${B} 줄을 읽어요: ${fmt(vb)}${u}`,
+          { label: josaW(B, '은', '는'), unit: u, ans: vb, max: len, row: p.b, help: `${B} 줄을 읽어요: ${fmt(vb)}${u}`,
             why: x => (x === iconCount(vb, p.sc) ? `그림 개수 말고 ${u} 수를 읽어 보자` : '') }
         ],
         direct: level >= 2,
         focus: list => g.focus(list),
         rightMsg: '차이를 잘 구했어!',
         fin: {
-          kind: 'num', unit: `${u} 더`, ans: d, max: len, row: [p.a, p.b],
+          kind: 'num', pre: josaW(A, '이', '가'), unit: u, post: '더 많아', ans: d, max: len, row: [p.a, p.b],
           why: x => (x === va + vb ? '더하기 말고 빼기로 차이를 구해 보자'
                    : x === va || x === vb ? '두 수의 차이를 구해 보자'
                    : x === iconCount(va, p.sc) - iconCount(vb, p.sc) ? `그림 개수의 차이 말고 ${u} 수의 차이를 구해 보자` : ''),
@@ -601,14 +586,14 @@
     left.appendChild(g.el);
     const len = String(Math.max(...p.vals)).length;
     solver(right, ctx, {
-      head: `모두 몇 ${u}?`,
-      rows: p.vals.map((v, i) => ({ label: cats[i], unit: u, ans: v, max: len, row: i, help: `${cats[i]} 줄을 읽어요: ${fmt(v)}${u}`,
+      head: '줄마다 읽고 모두 더해요',
+      rows: p.vals.map((v, i) => ({ label: josaW(cats[i], '은', '는'), unit: u, ans: v, max: len, row: i, help: `${cats[i]} 줄을 읽어요: ${fmt(v)}${u}`,
         why: x => (x === iconCount(v, p.sc) ? `그림 개수 말고 ${u} 수를 읽어 보자` : '') })),
       direct: level >= 2,
       focus: list => g.focus(list),
       rightMsg: '모두 잘 더했어!',
       fin: {
-        kind: 'num', unit: u, ans: sum, max: String(sum).length, row: null,
+        kind: 'num', pre: '모두', unit: u, ans: sum, max: String(sum).length, row: null,
         why: x => (p.vals.some(v => x === sum - v) ? '빠진 줄이 없는지 보자. 모든 줄을 더해요' : ''),
         help: `${p.vals.map(fmt).join(' + ')} = ${fmt(sum)}`
       }
@@ -638,7 +623,7 @@
       steps = `<li>📊 ${units}</li>
         <li>① ${fmt(v)}마리 → ${vs.map((u, k) => `${nm[k]} 그림 <b>${cnt[k]}개</b>`).join(', ')}</li>
         <li>② 큰 그림부터! 그림 수가 가장 적게 그려요</li>
-        <li>✏️ 아래에서 그림을 고르고 <b>노란 칸</b>을 누르면 그려져요 (끌어다 놓아도 돼요)</li>`;
+        <li>✏️ 그릴 <b>줄</b>(노란 칸)을 먼저 눌러 고르고, 아래 <b>그림 버튼</b>을 누를 때마다 하나씩 들어가요</li>`;
     } else {
       steps = `<li>📊 ${units}</li>
         <li>🔍 가장 많은 곳: <b>${nm[0]} 그림</b>이 가장 많은 줄부터 찾아요</li>
