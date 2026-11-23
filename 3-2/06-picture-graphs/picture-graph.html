@@ -34,17 +34,20 @@
   /* 그리기 (나타내기) */
   .pg-cell.is-target { background: #fffbe8; cursor: pointer; }
   .pg-icons.is-target { outline: 3px dashed #e0b34a; outline-offset: -5px; flex-wrap: wrap; }
-  .pg-icons.is-target:empty::after { content: '여기를 눌러 그려요'; color: #b8862a; font-size: 1.1rem; font-weight: 700; }
+  .pg-icons.is-target:empty::after { content: '먼저 여기를 눌러 골라요'; color: #b8862a; font-size: 1.1rem; font-weight: 700; }
+  .pg-icons.is-target.is-picked:empty::after { content: '아래 그림을 눌러 넣어요'; }
+  .pg-cell.is-picked { background: #ffeeb0; }
+  .pg-cat.is-picked { box-shadow: inset 6px 0 0 #e0a820; }
+  .pg-icons.is-picked { outline-style: solid; outline-color: #e0a820; }
+  .pg-tools.is-wait .tool:not(.tool-fn) { opacity: 0.5; }
   .pg-tools { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: nowrap; white-space: nowrap; }
   .pg-tools.is-off { visibility: hidden; }
   .tool {
     min-height: 66px; padding: 4px 14px; border-radius: 16px; border: 3px solid var(--line); background: #fff;
     font-size: 1.2rem; font-weight: 800; color: var(--ink); display: inline-flex; align-items: center; gap: 8px;
-    cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+    cursor: pointer; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   }
-  .tool.is-on { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 3px var(--accent-soft); }
   .tool-fn { font-size: 1.15rem; color: var(--ink-soft); padding: 4px 14px; }
-  .pg-ghost { position: fixed; z-index: 60; pointer-events: none; transform: translate(-50%, -50%); line-height: 1; }
 
   /* 문제 문장 한 줄 + 오른쪽 풀이 */
   .q-line { font-size: 1.75rem; white-space: nowrap; margin: 10px 0 10px; }
@@ -411,14 +414,15 @@
     const target = g.rows[p.k];
     target.cat.classList.add('is-target'); target.icons.classList.add('is-target');
 
-    // 도구: 큰/작은 그림 고르기(누르기) 또는 끌어다 놓기, 하나 빼기, 다시
-    const tools = h('div', 'pg-tools');
-    let tool = 0, locked = false;
+    // 순서: 그릴 줄(이름 칸)을 눌러 먼저 고르고 → 아래 그림 버튼을 누를 때마다 그 줄에 하나씩 들어감
+    const tools = h('div', 'pg-tools is-wait');
+    let picked = false, locked = false;
     const counts = vs.map(() => 0);
     const MAX = 20;
     const toolBtns = vs.map((u, k) => {
-      const b = h('button', 'tool' + (k === 0 ? ' is-on' : ''), `${ic(th, p.sc, k)} ${fmt(u)}${th.unit}`);
+      const b = h('button', 'tool', `${ic(th, p.sc, k)} ${fmt(u)}${th.unit}`);
       b.type = 'button';
+      b.addEventListener('click', () => add(k));
       tools.appendChild(b);
       return b;
     });
@@ -430,48 +434,22 @@
 
     const order = [];   // 넣은 순서 (하나 빼기)
     function paint() { g.setCounts(p.k, counts); }
+    function pickRow() {
+      if (locked || picked) return;
+      picked = true;
+      target.cat.classList.add('is-picked'); target.icons.classList.add('is-picked');
+      tools.classList.remove('is-wait');
+      T.toast(`${cat} 줄을 골랐어! 아래 그림을 눌러 넣어 보자`, 'info');
+    }
     function add(k) {
       if (locked) return;
+      if (!picked) { T.toast(`먼저 <b>${cat}</b> 줄을 눌러서 골라 보자`, 'info'); return; }
       if (counts.reduce((a, b) => a + b, 0) >= MAX) { T.toast('그림이 너무 많아. 큰 그림을 써 보자', 'retry'); return; }
       counts[k] += 1; order.push(k); paint();
     }
-    function pickTool(k) { tool = k; toolBtns.forEach((b, i) => b.classList.toggle('is-on', i === k)); }
     undo.addEventListener('click', () => { if (locked || !order.length) return; counts[order.pop()] -= 1; paint(); });
     reset.addEventListener('click', () => { if (locked) return; counts.fill(0); order.length = 0; paint(); });
-    [target.cat, target.icons].forEach(c => c.addEventListener('click', () => add(tool)));
-
-    // 펜슬·손가락으로 끌어다 놓기 (누르기만 하면 그 그림을 고름)
-    toolBtns.forEach((b, k) => {
-      let start = null, ghost = null, pid = null;
-      b.addEventListener('pointerdown', e => {
-        if (locked) return;
-        pid = e.pointerId; start = [e.clientX, e.clientY];
-        try { b.setPointerCapture(pid); } catch (err) {}
-        pickTool(k);
-        e.preventDefault();
-      });
-      b.addEventListener('pointermove', e => {
-        if (e.pointerId !== pid || !start) return;
-        if (!ghost && Math.hypot(e.clientX - start[0], e.clientY - start[1]) > 12) {
-          ghost = h('span', `pg-ghost ic ic-${SIZE[vs.length][k]}`, th.icon);
-          document.body.appendChild(ghost);
-        }
-        if (ghost) { ghost.style.left = e.clientX + 'px'; ghost.style.top = e.clientY + 'px'; }
-      });
-      const end = e => {
-        if (e.pointerId !== pid) return;
-        pid = null; start = null;
-        if (ghost) {
-          ghost.remove(); ghost = null;
-          const under = document.elementFromPoint(e.clientX, e.clientY);
-          const cell = under && under.closest && under.closest('[data-row]');
-          if (cell && +cell.dataset.row === p.k) add(k);
-          else T.toast('노란 칸에 놓아 보자', 'info');
-        }
-      };
-      b.addEventListener('pointerup', end);
-      b.addEventListener('pointercancel', e => { if (e.pointerId === pid) { pid = null; start = null; if (ghost) { ghost.remove(); ghost = null; } } });
-    });
+    [target.cat, target.icons].forEach(c => c.addEventListener('click', pickRow));
 
     const nmu = k => `${nm[k]} 그림`;
     const rows = vs.map((u, k) => ({
@@ -489,14 +467,14 @@
       rows,
       direct: false,
       rightMsg: '그림그래프를 잘 그렸어!',
-      onRight() { locked = true; tools.classList.add('is-off'); target.cat.classList.remove('is-target'); target.icons.classList.remove('is-target'); },
+      onRight() { locked = true; tools.classList.add('is-off'); ['is-target', 'is-picked'].forEach(c => { target.cat.classList.remove(c); target.icons.classList.remove(c); }); },
       fin: {
         kind: 'draw',
         help: `${vs.map((u, k) => `${nmu(k)} ${cnt[k]}개`).join(', ')} 그려요`,
         check() {
           const total = counts.reduce((s, c, k) => s + c * vs[k], 0);
           if (counts.every((c, k) => c === cnt[k])) return { ok: true };
-          if (counts.every(c => c === 0)) return { ok: false, why: '노란 칸을 눌러서 그림을 그려 보자' };
+          if (counts.every(c => c === 0)) return { ok: false, why: picked ? '아래 그림 버튼을 눌러서 그려 보자' : `${cat} 줄을 눌러 고르고, 아래 그림을 눌러 그려 보자` };
           if (total === v) return { ok: false, why: p.sc === 's1'
             ? `수는 맞아! 작은 그림 10개는 큰 그림 1개로 바꿔 그려요`
             : `수는 맞아! 그림 수가 가장 적게 되도록 큰 그림부터 그려요` };
@@ -638,7 +616,7 @@
       steps = `<li>📊 ${units}</li>
         <li>① ${fmt(v)}마리 → ${vs.map((u, k) => `${nm[k]} 그림 <b>${cnt[k]}개</b>`).join(', ')}</li>
         <li>② 큰 그림부터! 그림 수가 가장 적게 그려요</li>
-        <li>✏️ 아래에서 그림을 고르고 <b>노란 칸</b>을 누르면 그려져요 (끌어다 놓아도 돼요)</li>`;
+        <li>✏️ 그릴 <b>줄</b>(노란 칸)을 먼저 눌러 고르고, 아래 <b>그림 버튼</b>을 누를 때마다 하나씩 들어가요</li>`;
     } else {
       steps = `<li>📊 ${units}</li>
         <li>🔍 가장 많은 곳: <b>${nm[0]} 그림</b>이 가장 많은 줄부터 찾아요</li>
