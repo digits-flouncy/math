@@ -4,22 +4,30 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>분수 피자</title>
-<link rel="stylesheet" href="../../shared/tamheom.css?v=14" />
+<link rel="stylesheet" href="../../shared/tamheom.css?v=15" />
 <style>
   .pizza, .bar { display: block; margin: 6px auto; touch-action: manipulation; }
-  .pizza { width: min(300px, 70vw); height: auto; }
-  .bar { width: min(460px, 86vw); height: auto; }
+  .pizza { width: min(340px, 70vw); height: auto; }
+  .bar { width: min(500px, 86vw); height: auto; }
+  .back .pizza { width: 200px; }
   .slice { cursor: pointer; transition: fill 0.15s; }
   .slice-num { font-size: 15px; font-weight: 800; fill: #6b5a45; pointer-events: none; }
   .count-line { font-size: 1.15rem; color: var(--ink-soft); text-align: center; min-height: 1.6em; }
   .explore-row { display: flex; gap: 12px; justify-content: center; margin-top: 10px; flex-wrap: wrap; }
   .explore { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: center; }
   @media (max-width: 760px) { .explore { grid-template-columns: 1fr; } }
+  .pz-q { font-size: 1.9rem; white-space: nowrap; text-align: center; margin: 6px 0 8px; }
+  .pz-q .th-frac-inline, .pz-q .th-mini-frac { vertical-align: middle; }
+  .color-side { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .color-side .th-check { width: 308px; height: 88px; font-size: 1.9rem; }
+  .color-side .th-btn-quiet { font-size: 1.2rem; }
+  .th-answer-col .th-bottom-play { display: none; }
+  .th-play .th-cols { grid-template-columns: minmax(0, 1.3fr) minmax(450px, 1fr); }
   .big-frac { font-size: 2.4rem; font-weight: 900; color: var(--accent); text-align: center; }
 </style>
 </head>
 <body>
-<script src="../../shared/tamheom.js?v=14"></script>
+<script src="../../shared/tamheom.js?v=15"></script>
 <script>
 (function () {
   const T = Tamheom;
@@ -106,10 +114,12 @@
     subtitle: '피자와 막대를 나눠서 분수를 알아봐요',
     accent: '#c2620f',
     accentSoft: '#fdf0e3',
+    oneLineTop: true,
+    toast: true,
     levels: [
       { name: '피자 색칠하기',       desc: '분수만큼 피자 조각을 눌러 색칠해요.' },
-      { name: '피자 보고 분수 쓰기', desc: '색칠한 부분을 분수로 써요. 잠시 뒤 힌트가 나와요.' },
-      { name: '막대로 분수',         desc: '피자 대신 막대로. 틀리면 피자 그림으로 돌아가 보여줘요.' }
+      { name: '피자 보고 분수 쓰기', desc: '① 모두 몇 조각 ② 색칠한 조각을 세고 분수로 써요.' },
+      { name: '막대로 분수',         desc: '피자 대신 막대로. 답만 써요. 틀리면 풀이 단계와 피자 그림이 나와요.' }
     ],
 
     intro(el) {
@@ -150,12 +160,12 @@
       cols.appendChild(left); cols.appendChild(right);
       el.appendChild(cols);
 
-      const qText = h('div', 'th-question');
+      const qText = h('div', 'th-question pz-q');
       const pic = h('div');
       const count = h('div', 'count-line');
       const hint = h('div', 'th-hint');
       hint.hidden = true;
-      const back = h('div');   // 막대에서 틀리면 피자 그림
+      const back = h('div', 'back');   // 막대에서 틀리면 피자 그림
       left.appendChild(qText); left.appendChild(pic); left.appendChild(count); left.appendChild(hint); left.appendChild(back);
 
       function showPizzaBack(filled) {
@@ -166,7 +176,7 @@
 
       if (p.k === 'color') {
         // 색칠하기
-        qText.innerHTML = `${shapeName}를 똑같이 ${p.n}${unit}으로 나눴어요.<br>${fracHTML(p.m, p.n)}만큼 색칠해 보세요.`;
+        qText.innerHTML = `${shapeName}의 ${fracHTML(p.m, p.n)}만큼 색칠해 보세요`;
         const filled = fillArr(p.n, 0);
         let numbers = false;
         function paint() {
@@ -179,15 +189,17 @@
         hint.innerHTML = `분모 <b>${T.josa(p.n, '은', '는')}</b> 전체 ${unit} 수, 분자 <b>${T.josa(p.m, '은', '는')}</b> 칠할 ${unit} 수예요.<br>${p.m}${unit}을 눌러서 칠해요.`;
         if (ctx.level === 1) hint.hidden = false; else ctx.later(() => { hint.hidden = false; });
 
-        right.appendChild(h('p', 'count-line', `${unit}을 눌러서 칠하고<br>다 했으면 확인을 눌러요`));
-        const done = h('button', 'th-btn th-btn-primary th-check', '확인 🎯');
+        const side = h('div', 'color-side');
+        side.appendChild(h('p', 'count-line', `${unit}을 눌러서 칠하고<br>다 했으면 확인을 눌러요`));
+        const done = h('button', 'th-btn th-btn-primary th-check th-key-check', '확인'); // 맞히면 그 자리에서 '다음 ▶'
         const reset = h('button', 'th-btn th-btn-quiet', '🔄 모두 지우기');
-        right.appendChild(done); right.appendChild(reset);
+        side.appendChild(done); side.appendChild(reset);
+        right.appendChild(side);
         reset.addEventListener('click', () => { filled.fill(false); paint(); });
         done.addEventListener('click', () => {
           const k = filled.filter(Boolean).length;
           if (k === p.m) {
-            done.disabled = true; reset.disabled = true;
+            reset.disabled = true;
             ctx.correct(`${unit} 수를 잘 셌어!`);
           } else {
             const n = ctx.wrong(`지금 ${k}${unit} 칠했어. ${p.m}${unit}을 칠해 보자 🐸`);
@@ -198,35 +210,105 @@
         return;
       }
 
-      // 분수 쓰기
-      qText.innerHTML = `색칠한 부분은 전체의<br>몇분의 몇일까요?`;
+      // 분수 쓰기: [①② 박스] 옆에 분수 칸 (분자=② 줄, 분모=① 줄). 분모부터, 아이가 직접 씀.
+      qText.innerHTML = `색칠한 부분은 전체의 몇분의 몇일까요?`;
       pic.appendChild(draw(fillArr(p.n, p.m)).el);
       hint.innerHTML = `${shapeName}는 모두 <b>${p.n}${unit}</b>, 색칠한 것은 <b>${p.m}${unit}</b>이에요.`;
-      if (ctx.level === 1) hint.hidden = false; else ctx.later(() => { hint.hidden = false; });
+      if (ctx.level === 3) ctx.later(() => { hint.hidden = false; });
 
-      const f = T.fraction();
-      right.appendChild(f.el);
-      const pad = T.keypad({ slots: f.slots, onCheck: check });
+      const DEN = t => `<span class="den-c">${t}</span>`, NUM = t => `<span class="num-c">${t}</span>`;
+      const sm = cls => { const s = T.slot({ small: true, label: '숫자 칸' }); s.el.classList.add(cls); return s; };
+      const a = sm('den-s'), b = sm('num-s'), fn = sm('num-s'), fd = sm('den-s');
+      const steps = [
+        { label: `① ${DEN('모두 몇 ' + unit + '?')}`, slot: a, slots: [a], ok: () => a.number === p.n,
+          why: () => a.number === p.m ? `색칠한 것만 말고 <b>모든</b> ${unit}을 세어 보자` : '',
+          help: `${shapeName}는 모두 ${p.n}${unit}` },
+        { label: `② ${NUM('색칠한 ' + unit + '?')}`, slot: b, slots: [b], ok: () => b.number === p.m,
+          why: () => b.number === p.n ? `전체 말고 <b>색칠한</b> ${unit}만 세어 보자` : '',
+          help: `색칠한 것은 ${p.m}${unit}` },
+        { slots: [fd, fn], ok: () => fn.number === p.m && fd.number === p.n,
+          why: () => (fn.number === p.n && fd.number === p.m) ? '위아래가 바뀌었어. 색칠한 수는 위, 전체 수는 아래에 써 보자' : '',
+          help: `${DEN('전체 ' + p.n + unit)}은 아래, ${NUM('색칠한 ' + p.m + unit)}은 위` }
+      ];
+      const stepsBox = h('div', 'frac-steps');
+      const qbox = h('div', 'fs-box');
+      [steps[1], steps[0]].forEach((st, i) => {
+        const row = h('div', 'fs-row');
+        row.appendChild(h('span', 'fs-label', st.label));
+        row.appendChild(st.slot.el);
+        row.appendChild(h('span', 'fs-unit', unit));
+        st.box = row;
+        if (i === 1) qbox.appendChild(h('div', 'fs-gap'));
+        qbox.appendChild(row);
+      });
+      stepsBox.appendChild(h('div', 'fs-head', '전체의 몇분의 몇?'));
+      stepsBox.appendChild(qbox);
+      const fr = h('div', 'fs-frac');
+      fr.appendChild(fn.el); fr.appendChild(h('div', 'fs-line')); fr.appendChild(fd.el);
+      stepsBox.appendChild(fr);
+      steps[2].box = fr;
+      const help = h('div', 'step-help fs-help');
+      stepsBox.appendChild(help);
+      steps.forEach(st => { st.wrongs = 0; });
+      right.appendChild(stepsBox);
+
+      const pad = T.keypad({ slots: [], onCheck: check, checkInPad: true });
       right.appendChild(pad.el);
 
+      let mode = ctx.level === 3 ? 'direct' : 'steps', cur = 0;
+      function focusStep() {
+        steps.forEach((st, i) => { st.box.classList.toggle('is-now', i === cur); st.box.classList.toggle('is-done', i < cur); });
+        pad.setSlots(steps[cur].slots);
+      }
+      if (mode === 'steps') focusStep();
+      else {
+        // 바로 답: 박스는 숨기고 분수 칸만
+        qbox.style.visibility = 'hidden';
+        fr.classList.add('is-now');
+        pad.setSlots([fd, fn]);
+      }
+
       function check() {
-        if (f.slots.some(s => s.value === '')) { ctx.say('빈칸에 숫자를 써 보자', 'info'); return; }
-        if (f.num.number === p.m && f.den.number === p.n) {
-          f.slots.forEach(s => { s.mark('right'); s.lock(); });
-          ctx.correct('분자와 분모를 잘 썼어!');
+        if (mode === 'direct') {
+          if (fn.value === '' || fd.value === '') { ctx.say('빈칸에 숫자를 써 보자', 'info'); return; }
+          if (fn.number === p.m && fd.number === p.n) {
+            [fn, fd].forEach(s => { s.mark('right'); s.lock(); });
+            ctx.correct('분자와 분모를 잘 썼어!');
+            return;
+          }
+          const why = steps[2].why();
+          [fn, fd].forEach(s => { s.mark('wrong'); s.clear(); s.mark(null); });
+          ctx.wrong((why ? why + '. ' : '괜찮아, ') + '하나씩 세어 보자 🐸');
+          mode = 'steps'; cur = 0;
+          qbox.style.visibility = '';
+          fr.classList.remove('is-now');
+          hint.hidden = false;
+          showPizzaBack();
+          focusStep();
           return;
         }
-        // 분자·분모를 바꿔 쓴 경우는 따로 알려 줌
-        const swapped = f.num.number === p.n && f.den.number === p.m;
-        f.slots.forEach(s => s.mark('wrong'));
-        const n = ctx.wrong(swapped ? '위아래가 바뀌었어. 칠한 수는 위, 전체 수는 아래에 써 보자 🐸' : null);
-        hint.hidden = false;
-        if (n >= 2) {
+        const st = steps[cur];
+        if (st.slots.some(s => s.value === '')) { ctx.say('빈칸에 숫자를 써 보자', 'info'); return; }
+        if (st.ok()) {
+          st.slots.forEach(s => { s.mark('right'); s.lock(); });
+          help.innerHTML = '';
+          if (cur < steps.length - 1) { cur += 1; focusStep(); }
+          else {
+            steps.forEach(x => { x.box.classList.remove('is-now'); x.box.classList.add('is-done'); });
+            ctx.correct('분자와 분모를 잘 썼어!');
+          }
+          return;
+        }
+        st.slots.forEach(s => s.mark('wrong'));
+        st.wrongs += 1;
+        const why = st.why();
+        const n = ctx.wrong(why || undefined);
+        if (st.wrongs >= 2) {
+          help.innerHTML = '도움: ' + st.help;
           pic.innerHTML = '';
           pic.appendChild(draw(fillArr(p.n, p.m), { numbers: true }).el);
-          showPizzaBack();
         }
-        pad.setSlots(f.slots);
+        pad.setSlots(st.slots);
       }
     }
   });
