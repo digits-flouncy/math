@@ -65,7 +65,9 @@
   function pickVoice() {
     try {
       const voices = global.speechSynthesis.getVoices().filter(isKo);
-      koVoice = voices.find(v => /yuna|유나/i.test(v.name) && v.localService) ||
+      const saved = loadSettings().voiceName;
+      koVoice = (saved && voices.find(v => v.name === saved)) ||
+                voices.find(v => /yuna|유나/i.test(v.name) && v.localService) ||
                 voices.find(v => /yuna|유나/i.test(v.name)) ||
                 voices.find(v => v.localService) ||
                 voices[0] || null;
@@ -588,11 +590,19 @@
         '2단계부터 힌트가 이 시간 뒤에 나타나요. 틀리면 바로 나와요.'));
       body.appendChild(seg('바로 3번 맞히면 단계 올리기', onOff, s.autoUp, v => upd('autoUp', v)));
       body.appendChild(seg('한 문제를 2번 틀리면 단계 낮추기', onOff, s.autoDown, v => upd('autoDown', v)));
+      const koVoices = hasSpeech ? global.speechSynthesis.getVoices().filter(isKo) : [];
+      if (koVoices.length > 1) {
+        body.appendChild(seg('목소리 고르기',
+          koVoices.map(v => ({ value: v.name, label: v.name.replace(/\s*\(.*\)$/, '') })),
+          (pickVoice() || {}).name,
+          v => { upd('voiceName', v); pickVoice(); const x = loadSettings(); if (x.sound) speak(randomPraise()); },
+          '누르면 그 목소리로 칭찬을 들려줘요. 마음에 드는 목소리를 고르세요.'));
+      }
       const sound = seg('칭찬 목소리', onOff, s.sound, v => upd('sound', v),
         hasSpeech ? (pickVoice() ? `목소리: ${koVoice.name} (${koVoice.lang})` : '이 기기에서 한국어 목소리를 찾지 못했어요. 외국어로 읽지 않도록 목소리는 꺼 둬요. 기기 설정의 음성(말하기) 메뉴에서 한국어 목소리를 받으면 나와요.') : '이 브라우저는 목소리를 지원하지 않아요.');
       const test = h('button', 'th-link-btn', '▶ 목소리 들어보기');
       test.type = 'button';
-      test.addEventListener('click', () => { const x = loadSettings(); if (!x.sound) return; speak(randomPraise()); });
+      test.addEventListener('click', () => { const x = loadSettings(); if (!x.sound) return; pickVoice(); speak(randomPraise()); });
       sound.appendChild(test);
       body.appendChild(sound);
 
