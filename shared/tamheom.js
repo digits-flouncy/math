@@ -399,8 +399,16 @@
 
     const $ = sel => app.querySelector(sel);
     const screens = { start: $('.th-start'), intro: $('.th-intro'), play: $('.th-play'), end: $('.th-end') };
+    // 한 줄 윗줄(시험 중): 홈 · 제목 · 개구리 진행 · 소리를 한 줄에. 활동 설정에서 oneLineTop: true
+    if (cfg.oneLineTop) {
+      app.classList.add('th-oneline');
+      const top = $('.th-top'), sound = $('.th-sound');
+      top.insertBefore($('.th-pads'), sound);
+      top.insertBefore($('.th-level-tag'), sound);
+    }
     function show(name) {
       Object.entries(screens).forEach(([k, el]) => { el.classList.toggle('is-shown', k === name); });
+      app.classList.toggle('is-playing', name === 'play');
       global.scrollTo(0, 0);
       fitToScreen();
     }
@@ -548,9 +556,11 @@
       const reviewItem = session.queue.shift() || null;
       q = { wrongs: 0, done: false, data: null, review: reviewItem, timers: [] };
       const lv = levels[session.level - 1];
-      $('.th-level-tag').innerHTML =
-        (reviewItem ? '<span class="th-review-badge">🔁 다시 풀어 보기</span> ' : '') +
-        `<span>${session.level}단계 · ${lv.name}</span>`;
+      $('.th-level-tag').innerHTML = cfg.oneLineTop
+        // 한 줄 윗줄: 단계 이름은 숨기고(어른 설정에서 확인) 다시 푸는 문제만 작은 표시
+        ? (reviewItem ? '<span class="th-review-badge">🔁 다시</span>' : '')
+        : (reviewItem ? '<span class="th-review-badge">🔁 다시 풀어 보기</span> ' : '') +
+          `<span>${session.level}단계 · ${lv.name}</span>`;
       const fb = $('.th-feedback');
       fb.textContent = '';
       fb.className = 'th-feedback';
