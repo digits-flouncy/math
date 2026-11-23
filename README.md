@@ -7,7 +7,7 @@
 ```
 index.html                       메인 페이지 (활동 카드 목록)
 3-2/                             3학년 2학기
-  04-multiplication/             곱셈·나눗셈
+  01-multiplication/             1단원 곱셈
     animal-legs.html             다리가 몇 개? (돼지와 오리)
   05-fractions/                  5단원 분수
     fraction-pizza.html          분수 탐험 (피자)
