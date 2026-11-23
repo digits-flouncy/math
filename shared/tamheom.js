@@ -115,10 +115,10 @@
 
   /* ---------- 녹음 파일 (이 기기에만 저장) ----------
    * 어른 설정에서 고른 소리 파일을 이 브라우저의 IndexedDB에만 저장합니다. 사이트에는 올라가지 않습니다.
-   * 칸: praise(칭찬, 여러 개 → 무작위), start(시작), jump(개구리 점프)
+   * 칸: praise(정답 칭찬, 여러 개 → 무작위), start(시작), jump(정답 뒤 개구리 점프), finish(다 풀었을 때)
    */
-  const CLIP_SLOTS = ['praise', 'start', 'jump'];
-  const clips = { praise: [], start: [], jump: [] };   // { id, name, url }
+  const CLIP_SLOTS = ['praise', 'start', 'jump', 'finish'];
+  const clips = { praise: [], start: [], jump: [], finish: [] };   // { id, name, url }
   let clipsReady = null;
   function idb() {
     return new Promise((resolve, reject) => {
@@ -175,7 +175,11 @@
     return true;
   }
   // 칭찬: 녹음 파일이 있으면 파일, 없으면 목소리
-  function praiseSound(text) { if (!playClip('praise')) speak(text); }
+  // 정답: 칭찬 소리 → 끝나면 개구리 점프 소리. 칭찬 파일이 없으면 목소리 + 점프 소리
+  function praiseSound(text) {
+    if (!playClip('praise', () => playClip('jump'))) { playClip('jump'); speak(text); }
+  }
+  function finishSound(text) { if (!playClip('finish')) speak(text); }
 
   /* ---------- 작은 도우미 ---------- */
   function h(tag, cls, html) {
@@ -614,7 +618,7 @@
       const showN = Math.min(stickers, 20);
       row.textContent = '🐸'.repeat(showN) + (stickers > showN ? ` +${stickers - showN}` : '');
       show('end');
-      praiseSound('끝까지 잘했어! 대단해!');
+      finishSound('끝까지 잘했어! 대단해!');
     }
 
     /* ----- 어른 설정 ----- */
@@ -683,9 +687,10 @@
       audioRow.appendChild(h('div', 'th-set-label', '녹음 파일 소리 (이 기기에만 저장)'));
       audioRow.appendChild(h('div', 'th-set-note', '칭찬 파일이 있으면 목소리 대신 파일을 무작위로 틀어요. 파일은 이 기기 브라우저에만 저장되고 사이트에는 올라가지 않아요.'));
       const slotsInfo = [
-        { slot: 'praise', label: '칭찬 (여러 개 가능)', multiple: true },
-        { slot: 'start', label: '시작할 때' },
-        { slot: 'jump', label: '다음 문제로 갈 때 (개구리 점프)' }
+        { slot: 'start', label: '시작할 때 (예: start)' },
+        { slot: 'praise', label: '정답일 때 칭찬 (예: good_job, 여러 개면 무작위)', multiple: true },
+        { slot: 'jump', label: '칭찬 뒤 개구리가 점프할 때 (예: jump)' },
+        { slot: 'finish', label: '다 풀었을 때 (예: great)' }
       ];
       const recList = h('div', 'th-clip-list');
       audioRow.appendChild(recList);
@@ -745,7 +750,7 @@
     /* ----- 버튼 연결 ----- */
     $('.th-go').addEventListener('click', () => { if (!playClip('start')) speak('시작!'); startSession(); });
     $('.th-intro-go').addEventListener('click', () => { show('play'); loadQuestion(); });
-    $('.th-next').addEventListener('click', () => { playClip('jump'); loadQuestion(); });
+    $('.th-next').addEventListener('click', () => loadQuestion());
     $('.th-again').addEventListener('click', () => { paintStart(); startSession(); });
 
     paintStart();
