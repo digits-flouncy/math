@@ -63,8 +63,6 @@
   .th-slot.den-s:not(.is-right):not(.is-wrong) { border-color: var(--den); }
   .direct { display: flex; align-items: center; gap: 10px; }
   .direct[hidden] { display: none; }
-  .direct.is-waiting { opacity: 0.45; pointer-events: none; }
-  .steps.is-waiting { pointer-events: none; }
   /* 숫자 패드 크게 */
   .th-answer-col .th-keypad { grid-template-columns: repeat(3, 96px); gap: 10px; }
   .th-answer-col .th-key { height: 72px; font-size: 2.1rem; border-radius: 16px; }
@@ -244,8 +242,10 @@
       el.classList.add('can-draw');
       surf.classList.add('draw-surface');
       surf.addEventListener('pointerdown', e => {
-        if (locked || pid !== null || !el.isConnected) return;
-        if (e.target.closest('button')) return;
+        if (locked || !el.isConnected) return;
+        if (e.target.closest && e.target.closest('button')) return;
+        // 이전 획이 제대로 안 끝났으면(아이패드에서 손이 화면 밖으로 나가는 등) 버리고 새로 시작
+        if (lassoPath) lassoPath.remove();
         pid = e.pointerId;
         try { surf.setPointerCapture(e.pointerId); } catch (err) {}
         pts = [toUnits(e)];
@@ -288,7 +288,9 @@
         tryGroup(got);
       };
       surf.addEventListener('pointerup', end);
-      surf.addEventListener('pointercancel', e => { if (e.pointerId === pid) { pid = null; pts = null; if (lassoPath) lassoPath.remove(); } });
+      const cancel = e => { if (e.pointerId === pid) { pid = null; pts = null; if (lassoPath) lassoPath.remove(); } };
+      surf.addEventListener('pointercancel', cancel);
+      surf.addEventListener('lostpointercapture', e => { if (e.pointerId === pid && pts) end(e); });
     }
 
     return {
@@ -547,7 +549,6 @@
       function grouped() {
         drawSay('다 묶었어! 이제 세어 보자 🐸', 'info');
         btns.classList.add('is-off');
-        if (ctx.level === 1) enterSteps(); else enterDirect();
       }
 
       // 레벨별 시작
@@ -555,15 +556,16 @@
         enterDirect();
       } else if (draw) {
         showField(true);
-        // 묶는 동안 오른쪽은 흐리게 미리 보여 줌 (자리 고정)
-        if (ctx.level === 1) { direct.hidden = true; stepsBox.classList.add('is-waiting'); }
-        else { stepsBox.hidden = true; direct.classList.add('is-waiting'); }
+        // 묶기는 돕는 도구: 다 묶기 전에도 답 칸에 바로 쓸 수 있음
+        if (ctx.level === 1) enterSteps(); else enterDirect();
       } else {
         showField(false);
         if (ctx.level === 1) enterSteps(); else enterDirect();
       }
 
       function finish(msg) {
+        if (field && field.count < p.d) field.autoGroup(); // 정답 그림을 보여 줌
+        if (field) { field.lock(); btns.classList.add('is-off'); }
         if (p.t === 'many' && field) field.markPart(p.n);
         ctx.correct(msg);
       }
