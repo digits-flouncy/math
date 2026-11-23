@@ -6,20 +6,66 @@
 <title>개구리 묶음 분수</title>
 <link rel="stylesheet" href="../../shared/tamheom.css?v=8" />
 <style>
-  .pens { display: grid; gap: 10px; justify-content: center; }
-  .pen {
-    display: grid; gap: 4px; justify-content: center; align-content: center;
-    padding: 8px; border-radius: 16px; background: var(--accent-soft); border: 3px solid #b5d8bd;
+  :root { --num: #2e9d4f; --num-soft: #d9f2df; --den: #2f6fc9; --den-soft: #dde9fa; }
+  .num-c { color: var(--num); }
+  .den-c { color: var(--den); }
+
+  /* 개구리 밭: 펜슬·손가락으로 동그라미를 그려 묶는 곳 */
+  .field {
+    position: relative; margin: 0 auto; border-radius: 18px;
+    background: #f7fbf4; border: 3px solid var(--line);
+    container-type: inline-size;
+    touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   }
-  .pen.dim { background: #f0f0ee; border-color: #dcdcd8; }
-  .pen.dim .frog { opacity: 0.35; filter: grayscale(1); }
-  .pen.pick { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-  .loose { display: grid; gap: 6px; justify-content: center; }
-  .loose .frog.dim { opacity: 0.35; filter: grayscale(1); }
-  .frog { line-height: 1; text-align: center; }
-  .steps { margin-top: 10px; font-size: 1.15rem; line-height: 1.8; text-align: left; }
-  .steps li { list-style: none; }
-  .intro-ex { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: center; }
+  .field.can-draw { cursor: crosshair; border-color: #b5d8bd; }
+  .draw-surface { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  .field svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+  .field .frog {
+    position: absolute; transform: translate(-50%, -50%); line-height: 1; pointer-events: none;
+    border-radius: 50%; transition: opacity .2s;
+  }
+  .field .frog.dim { opacity: 0.35; filter: grayscale(1); }
+  .field .frog.sel { box-shadow: 0 0 0 4px #f0c35a; background: #fff3c9; }
+  .field .frog.in-group.dim { opacity: 0.45; }
+  .hull { stroke-width: 5; stroke-linejoin: round; }
+  .hull.part { stroke: var(--num); fill: var(--num-soft); }
+  .hull.rest { stroke: var(--den); fill: var(--den-soft); }
+  .lasso { fill: rgba(240, 195, 90, 0.15); stroke: #d99a1e; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 10 8; }
+  .badge circle { fill: var(--den); }
+  .badge text { fill: #fff; font-weight: 900; font-size: 30px; text-anchor: middle; dominant-baseline: central; }
+
+  .draw-bar { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+  .draw-tip { font-size: 1.1rem; color: var(--ink-soft); }
+  .draw-tip b { color: var(--accent); }
+  .draw-bar .th-btn { padding: 6px 14px; font-size: 1rem; min-height: 0; }
+  .draw-count { font-weight: 800; color: var(--den); font-size: 1.1rem; }
+
+  /* 풀이 단계 (오른쪽) */
+  .steps { display: flex; flex-direction: column; gap: 6px; width: 100%; max-width: 360px; }
+  .steps[hidden] { display: none; }
+  .step { border: 2px solid var(--line); border-radius: 14px; padding: 4px 10px; opacity: 0.45; }
+  .step.is-now { opacity: 1; border-color: var(--accent); background: var(--accent-soft); }
+  .step.is-done { opacity: 1; }
+  .step-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-weight: 800; font-size: 1.15rem; }
+  .step-row .th-slot-sm { height: 48px; width: 58px; font-size: 1.5rem; }
+  .step-row .th-frac { gap: 4px; }
+  .step-row .th-frac-line { width: 64px; height: 4px; }
+  .step-help { font-size: 1rem; color: var(--retry); }
+  .step-help:empty { display: none; }
+  .th-slot.num-s:not(.is-right):not(.is-wrong) { border-color: var(--num); }
+  .th-slot.den-s:not(.is-right):not(.is-wrong) { border-color: var(--den); }
+  .direct { display: flex; align-items: center; gap: 10px; }
+  .direct[hidden] { display: none; }
+  .wait-note { font-size: 1.1rem; color: var(--ink-soft); text-align: center; }
+  .wait-note[hidden] { display: none; }
+
+  .q-what { font-size: 1.7rem; margin-bottom: 8px; }
+  /* 안내 글이 나타나도 화면 크기가 바뀌지 않게(그리는 중에 개구리가 움직이지 않게) 자리를 미리 둠 */
+  .th-answer-col .th-feedback { min-height: 3.6em; display: flex; align-items: center; justify-content: center; }
+  .th-answer-col .th-feedback:empty { display: flex; visibility: hidden; }
+  .intro-ex { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: center; }
+  .intro-steps { font-size: 1.1rem; line-height: 1.8; text-align: left; }
+  .intro-steps li { list-style: none; }
   @media (max-width: 760px) { .intro-ex { grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -28,7 +74,7 @@
 <script>
 (function () {
   const T = Tamheom;
-  const { randInt, pick, h } = T;
+  const { randInt, pick, h, josa, fracHTML, fracJosa } = T;
 
   // 레벨별 문제 범위 (문제 수준은 일반 3학년과 같게)
   const RANGE = [
@@ -46,77 +92,243 @@
     return { t: type, d, s, n };
   }
 
-  // 개수에 따라 보기 좋은 배치 (6 → 3×2, 8 → 4×2 ...)
-  function dims(c) {
-    if (c <= 3) return { cols: c };
-    if (c % 2 === 0) return { cols: c / 2 };
-    return { cols: Math.ceil(c / 2) };
-  }
-
-  // mode: 'grouped' 묶음 / 'loose' 낱개 / 'none'
-  function drawFrogs(p, mode, highlight) {
-    const total = p.d * p.s;
-    const size = total <= 16 ? '1.8rem' : total <= 28 ? '1.45rem' : '1.2rem';
-    if (mode === 'grouped') {
-      const wrap = h('div', 'pens');
-      wrap.style.gridTemplateColumns = `repeat(${dims(p.d).cols}, auto)`;
-      for (let g = 0; g < p.d; g++) {
-        let cls = 'pen';
-        if (highlight === 'part' && g >= p.n) cls += ' dim';
-        if (highlight === 'pick' && g < p.n) cls += ' pick';
-        const pen = h('div', cls);
-        pen.style.gridTemplateColumns = `repeat(${dims(p.s).cols}, auto)`;
-        for (let i = 0; i < p.s; i++) {
-          const f = h('span', 'frog', '🐸');
-          f.style.fontSize = size;
-          pen.appendChild(f);
-        }
-        wrap.appendChild(pen);
-      }
-      return wrap;
-    }
-    const wrap = h('div', 'loose');
-    wrap.style.gridTemplateColumns = `repeat(${Math.min(total, 10)}, auto)`;
-    for (let i = 0; i < total; i++) {
-      const f = h('span', 'frog' + (highlight === 'part' && i >= p.n * p.s ? ' dim' : ''), '🐸');
-      f.style.fontSize = size;
-      wrap.appendChild(f);
-    }
-    return wrap;
-  }
-
-  const { josa, fracHTML, fracJosa } = T;
   const hi = s => `<span class="hi">${s}</span>`;
+  const NUM = s => `<span class="num-c">${s}</span>`;
+  const DEN = s => `<span class="den-c">${s}</span>`;
+  function colorFrac(n, d) {
+    return `<span class="th-mini-frac"><span class="num-c">${n}</span><span class="den-c">${d}</span></span>`;
+  }
+
+  /* ---------- 개구리 밭 ----------
+   * 한 칸 = 100 단위. 묶음은 줄을 넘지 않게 한 줄 칸 수를 묶음 크기(s)의 배수로 둠.
+   * 'what' 문제에서는 앞쪽 n묶음(분자)만 색이 있고 나머지는 회색. */
+  function layout(p) {
+    let best = null;
+    for (let k = 1; k <= p.d; k++) {
+      const cols = p.s * k, rows = Math.ceil(p.d / k);
+      const score = Math.abs(Math.log((cols / rows) / 1.6));
+      if (cols > 12) break;
+      if (!best || score < best.score) best = { cols, rows, k, score };
+    }
+    return best;
+  }
+
+  function hullOf(points) {
+    const pts = points.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+    const lower = [], upper = [];
+    for (const q of pts) { while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], q) <= 0) lower.pop(); lower.push(q); }
+    for (let i = pts.length - 1; i >= 0; i--) { const q = pts[i]; while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], q) <= 0) upper.pop(); upper.push(q); }
+    upper.pop(); lower.pop();
+    return lower.concat(upper);
+  }
+  function inside(pt, poly) {
+    let c = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const [xi, yi] = poly[i], [xj, yj] = poly[j];
+      if ((yi > pt[1]) !== (yj > pt[1]) && pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi) c = !c;
+    }
+    return c;
+  }
+  const NS = 'http://www.w3.org/2000/svg';
+  function svgEl(tag, attrs) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  // opts: { draw: 그려서 묶기, onGroupsDone, say, maxH }
+  function makeField(p, opts) {
+    opts = opts || {};
+    const L = layout(p);
+    const gap = opts.draw ? 0 : 26; // 묶인 그림은 묶음 사이를 조금 띄움
+    const W = L.cols * 100 + (L.k - 1) * gap, H = L.rows * 100 + (L.rows - 1) * gap / 2;
+    const total = p.d * p.s, part = p.n * p.s;
+    const el = h('div', 'field');
+    const maxH = opts.maxH || 380;
+    el.style.aspectRatio = `${W} / ${H}`;
+    el.style.width = `min(100%, ${Math.round(maxH * W / H)}px)`;
+    const back = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none' });
+    const front = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none' });
+    el.appendChild(back);
+
+    const jit = () => (Math.random() - 0.5) * (opts.draw ? 22 : 8);
+    const frogs = [];
+    const size = 52 / L.cols; // cqw
+    for (let i = 0; i < total; i++) {
+      const g = Math.floor(i / p.s), r = Math.floor(g / L.k), c = (g % L.k) * p.s + (i % p.s);
+      const x = c * 100 + (g % L.k) * gap + 50 + jit(), y = r * (100 + gap / 2) + 50 + jit();
+      const isPart = p.t === 'what' && i < part;
+      const f = h('span', 'frog' + (p.t === 'what' && !isPart ? ' dim' : ''), '🐸');
+      f.style.left = (x / W * 100) + '%';
+      f.style.top = (y / H * 100) + '%';
+      f.style.fontSize = size + 'cqw';
+      el.appendChild(f);
+      frogs.push({ i, x, y, el: f, part: isPart, group: -1 });
+    }
+    el.appendChild(front);
+
+    const groups = []; // { frogs, hull, badge }
+    let selected = [];
+    let locked = !opts.draw;
+    let badSize = 0;
+
+    function addGroup(list) {
+      const isPart = p.t === 'what' && list[0].part;
+      const pts = [];
+      list.forEach(f => { for (let a = 0; a < 16; a++) pts.push([f.x + 38 * Math.cos(a * Math.PI / 8), f.y + 38 * Math.sin(a * Math.PI / 8)]); });
+      const hp = hullOf(pts);
+      const hull = svgEl('path', { d: 'M' + hp.map(q => q.map(Math.round).join(' ')).join(' L') + ' Z', class: 'hull ' + (isPart ? 'part' : 'rest') });
+      back.appendChild(hull);
+      const top = hp.reduce((m, q) => (q[1] < m[1] ? q : m), hp[0]);
+      const cx = list.reduce((s, f) => s + f.x, 0) / list.length;
+      const badge = svgEl('g', { class: 'badge' });
+      const by = Math.max(18, top[1] + 4);
+      badge.appendChild(svgEl('circle', { cx, cy: by, r: 17 }));
+      const t = svgEl('text', { x: cx, y: by + 1 });
+      t.textContent = String(groups.length + 1);
+      badge.appendChild(t);
+      front.appendChild(badge);
+      const gi = groups.length;
+      list.forEach(f => { f.group = gi; f.el.classList.add('in-group'); f.el.classList.remove('sel'); });
+      groups.push({ frogs: list, hull, badge, part: isPart });
+    }
+
+    function tryGroup(list) {
+      selected.forEach(f => f.el.classList.remove('sel'));
+      selected = [];
+      const k = list.length;
+      if (k === 0) { opts.say && opts.say('개구리가 동그라미 안에 들어가게 그려 보자', 'info'); return; }
+      if (p.t === 'what') {
+        if (k !== p.s) { opts.say && opts.say(`<b>${p.s}마리씩</b> 묶어 보자 (지금 ${k}마리)`, 'retry'); return; }
+        if (list.some(f => f.part) && list.some(f => !f.part)) { opts.say && opts.say('같은 색 개구리끼리 묶어 보자', 'retry'); return; }
+      } else if (k !== p.s) {
+        badSize += 1;
+        opts.say && opts.say(badSize >= 2
+          ? `한 묶음에 <b>${p.s}마리씩</b> 묶어 보자 (지금 ${k}마리)`
+          : `똑같이 <b>${p.d}묶음</b>이 되게 묶어 보자 (지금 ${k}마리)`, 'retry');
+        return;
+      }
+      addGroup(list);
+      opts.onChange && opts.onChange(groups.length);
+      if (groups.length === p.d) {
+        locked = true;
+        el.classList.remove('can-draw');
+        opts.onGroupsDone && opts.onGroupsDone();
+      } else {
+        opts.say && opts.say(`좋아! ${groups.length}묶음`, 'info');
+      }
+    }
+
+    // 펜슬·손가락·마우스 그리기
+    let pts = null, lassoPath = null, pid = null;
+    function toUnits(e) {
+      const r = el.getBoundingClientRect();
+      return [(e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * H];
+    }
+    // 그리기는 밭 밖(왼쪽 칸 전체)에서 시작해도 됨
+    const surf = opts.surface || el;
+    if (opts.draw) {
+      el.classList.add('can-draw');
+      surf.classList.add('draw-surface');
+      surf.addEventListener('pointerdown', e => {
+        if (locked || pid !== null || !el.isConnected) return;
+        if (e.target.closest('button')) return;
+        pid = e.pointerId;
+        try { surf.setPointerCapture(e.pointerId); } catch (err) {}
+        pts = [toUnits(e)];
+        lassoPath = svgEl('path', { class: 'lasso', d: '' });
+        front.appendChild(lassoPath);
+        e.preventDefault();
+      });
+      surf.addEventListener('pointermove', e => {
+        if (e.pointerId !== pid || !pts) return;
+        const q = toUnits(e), last = pts[pts.length - 1];
+        if (Math.hypot(q[0] - last[0], q[1] - last[1]) < 4) return;
+        pts.push(q);
+        lassoPath.setAttribute('d', 'M' + pts.map(a => a.map(Math.round).join(' ')).join(' L'));
+        e.preventDefault();
+      });
+      const end = e => {
+        if (e.pointerId !== pid || !pts) return;
+        pid = null;
+        const path = pts; pts = null;
+        let len = 0;
+        for (let i = 1; i < path.length; i++) len += Math.hypot(path[i][0] - path[i - 1][0], path[i][1] - path[i - 1][1]);
+        const box = path.reduce((b, q) => [Math.min(b[0], q[0]), Math.min(b[1], q[1]), Math.max(b[2], q[0]), Math.max(b[3], q[1])], [1e9, 1e9, -1e9, -1e9]);
+        if (len < 30 || (box[2] - box[0] < 30 && box[3] - box[1] < 30)) {
+          // 누르기: 개구리 하나씩 고르기
+          lassoPath.remove();
+          const q = path[0];
+          let best = null, bd = 55;
+          frogs.forEach(f => { const dd = Math.hypot(f.x - q[0], f.y - q[1]); if (f.group < 0 && dd < bd) { bd = dd; best = f; } });
+          if (!best) return;
+          if (selected.includes(best)) { selected = selected.filter(f => f !== best); best.el.classList.remove('sel'); return; }
+          selected.push(best); best.el.classList.add('sel');
+          if (p.t === 'what' && selected.length === p.s) tryGroup(selected.slice());
+          else if (p.t === 'many' && selected.length === p.s) tryGroup(selected.slice());
+          else if (p.t === 'many' && selected.length > p.s) tryGroup(selected.slice());
+          return;
+        }
+        const poly = path;
+        const got = frogs.filter(f => f.group < 0 && inside([f.x, f.y], poly));
+        lassoPath.remove();
+        tryGroup(got);
+      };
+      surf.addEventListener('pointerup', end);
+      surf.addEventListener('pointercancel', e => { if (e.pointerId === pid) { pid = null; pts = null; if (lassoPath) lassoPath.remove(); } });
+    }
+
+    return {
+      el, groups,
+      get count() { return groups.length; },
+      undo() {
+        const g = groups.pop();
+        if (!g) return;
+        g.hull.remove(); g.badge.remove();
+        g.frogs.forEach(f => { f.group = -1; f.el.classList.remove('in-group'); });
+        opts.onChange && opts.onChange(groups.length);
+      },
+      reset() { while (groups.length) this.undo(); selected.forEach(f => f.el.classList.remove('sel')); selected = []; },
+      autoGroup() {
+        this.reset();
+        for (let g = 0; g < p.d; g++) addGroup(frogs.slice(g * p.s, g * p.s + p.s));
+        locked = true; el.classList.remove('can-draw');
+      },
+      markPart(n) { // 'many' 문제: n묶음을 초록으로
+        groups.forEach((g, i) => g.hull.setAttribute('class', 'hull ' + (i < n ? 'part' : 'rest')));
+      },
+      lock() { locked = true; el.classList.remove('can-draw'); }
+    };
+  }
 
   function questionHTML(p) {
     const total = p.d * p.s, part = p.n * p.s;
     if (p.t === 'what') {
-      return `${hi(josa(total, '을', '를'))} ${hi(p.s)}씩 묶으면<br>` +
-             `${hi(josa(part, '은', '는'))} ${hi(total)}의 몇분의 몇일까요?`;
+      return `${hi(josa(total, '을', '를'))} ${hi(p.s)}씩 묶으면 ` +
+             `${NUM(josa(part, '은', '는'))} ${DEN(total)}의 몇분의 몇?`;
     }
-    return `${hi(total)}의 ${hi(fracJosa(p.n, p.d, '은', '는'))} 얼마일까요?`;
+    return `${hi(total)}의 ${fracJosa(p.n, p.d, '은', '는')} 얼마일까요?`;
   }
 
-  function hintHTML(p) {
+  // 분수 실수별 안내
+  function fracMistake(p, num, den) {
     const total = p.d * p.s, part = p.n * p.s;
-    if (p.t === 'what') {
-      return `${total}마리를 <b>${p.s}마리씩</b> 묶으면 <b>${p.d}묶음</b>.<br>${part}마리는 그중 <b>${p.n}묶음</b>이에요.`;
-    }
-    return `${total}마리를 똑같이 <b>${p.d}묶음</b>으로 나누면<br>한 묶음은 <b>${p.s}마리</b>예요.`;
+    if (num === part && den === total) return '마리 수 말고 <b>묶음 수</b>로 써 보자';
+    if (num === p.d && den === p.n) return '위(분자)에는 색깔 묶음 수, 아래(분모)에는 전체 묶음 수를 써';
+    if (num === p.n && den === p.d - p.n) return '아래(분모)에는 <b>전체</b> 묶음 수를 써 보자';
+    if (num === p.n && den === total) return '아래(분모)도 마리 수 말고 <b>묶음 수</b>로 써 보자';
+    if (num === part && den === p.d) return '위(분자)도 마리 수 말고 <b>묶음 수</b>로 써 보자';
+    if (num > 0 && den > 0 && num * p.d === den * p.n) return `크기는 같지만, ${p.s}마리씩 묶은 <b>묶음 수</b>로 써 보자`;
+    return '';
   }
-
-  function stepsHTML(p) {
-    const total = p.d * p.s, part = p.n * p.s;
-    if (p.t === 'what') {
-      return `<ol class="steps">
-        <li>① ${p.s}마리씩 묶으면 모두 <b>${p.d}묶음</b></li>
-        <li>② ${part}마리는 <b>${p.n}묶음</b></li>
-        <li>③ ${p.d}묶음 중 ${p.n}묶음 → <b>${fracHTML(p.n, p.d)}</b></li></ol>`;
-    }
-    return `<ol class="steps">
-      <li>① ${total}마리를 ${p.d}묶음으로 나누면 한 묶음에 <b>${p.s}마리</b></li>
-      <li>② ${fracJosa(p.n, p.d, '은', '는')} <b>${p.n}묶음</b></li>
-      <li>③ ${p.s}마리씩 ${p.n}묶음 → <b>${part}마리</b></li></ol>`;
+  function manyMistake(p, v) {
+    const part = p.n * p.s;
+    if (v === p.s && p.n !== 1) return `그건 한 묶음이야. <b>${p.n}묶음</b>이면 몇 마리일까?`;
+    if (v === p.n) return '그건 묶음 수야. 개구리가 <b>몇 마리</b>인지 세어 보자';
+    if (v === p.d) return '그건 전체 묶음 수야. 개구리가 몇 마리인지 세어 보자';
+    if (v === p.d * p.s) return `그건 전체 개구리야. ${p.n}묶음만 세어 보자`;
+    return '';
   }
 
   T.activity({
@@ -125,9 +337,9 @@
     emoji: '🐸',
     subtitle: '개구리를 묶어서 몇분의 몇인지 알아봐요',
     levels: [
-      { name: '묶음 그림 + 힌트', desc: '개구리가 묶여 있고 힌트 글이 보여요. 작은 수.' },
-      { name: '낱개 그림',         desc: '개구리가 낱개로 있어요. 잠시 뒤 묶음 힌트가 나와요.' },
-      { name: '숫자만',            desc: '그림 없이 숫자만. 틀리면 그림이 나와요.' }
+      { name: '묶기 + 단계',  desc: '펜슬이나 손가락으로 개구리를 묶고, 3단계로 풀어요. 작은 수.' },
+      { name: '묶고 바로 답', desc: '직접 묶은 뒤 바로 답해요. 틀리면 단계가 나와요.' },
+      { name: '숫자만',       desc: '그림 없이 숫자만. 틀리면 묶인 그림과 단계가 나와요.' }
     ],
     options: [{
       key: 'type', label: '문제 종류', value: 'what',
@@ -137,16 +349,37 @@
         { value: 'mix',  label: '섞어서' }
       ],
       note: '처음에는 한 종류만, 익숙해지면(바로 맞히기 80% 이상) 섞어서를 권해요.'
+    }, {
+      key: 'group', label: '묶는 방법', value: 'draw',
+      choices: [
+        { value: 'draw',  label: '직접 그려서 묶기' },
+        { value: 'shown', label: '묶인 그림 보기' }
+      ],
+      note: '그리기가 힘든 날에는 묶인 그림 보기로 바꿔 주세요.'
     }],
 
     intro(el, ctx) {
       const type = ctx.options.type;
       const ex = { t: type === 'many' ? 'many' : 'what', d: 7, s: 2, n: 2 };
       const box = h('div', 'intro-ex');
-      box.appendChild(drawFrogs(ex, 'grouped', ex.t === 'what' ? 'part' : 'pick'));
+      const f = makeField(ex, { maxH: 260 });
+      f.autoGroup();
+      if (ex.t === 'many') f.markPart(ex.n);
+      box.appendChild(f.el);
       const text = h('div');
-      text.innerHTML = `<p class="th-question" style="text-align:left;font-size:1.4rem">${questionHTML(ex)}</p>` + stepsHTML(ex) +
-        (type === 'mix' ? `<p style="margin-top:10px">“14의 ${fracHTML(2, 7)}는 얼마?” 문제도 나와요. 똑같이 묶어서 세면 돼요!</p>` : '');
+      const steps = ex.t === 'what'
+        ? `<ol class="intro-steps">
+            <li>✏️ 펜슬이나 손가락으로 <b>2마리씩</b> 동그라미를 그려 묶어요 (개구리를 눌러도 돼요)</li>
+            <li>① 모두 몇 묶음? → ${DEN('<b>7묶음</b>')}</li>
+            <li>② 색깔 개구리 4마리는 몇 묶음? → ${NUM('<b>2묶음</b>')}</li>
+            <li>③ ${DEN('7묶음')} 중 ${NUM('2묶음')} → <b>${colorFrac(2, 7)}</b></li></ol>`
+        : `<ol class="intro-steps">
+            <li>✏️ 똑같이 <b>7묶음</b>이 되게 동그라미를 그려 묶어요</li>
+            <li>① 한 묶음은 몇 마리? → <b>2마리</b></li>
+            <li>② ${fracJosa(2, 7, '은', '는')} 몇 묶음? → ${NUM('<b>2묶음</b>')}</li>
+            <li>③ 2마리씩 2묶음 → <b>4마리</b></li></ol>`;
+      text.innerHTML = `<p class="th-question" style="text-align:left;font-size:1.35rem">${questionHTML(ex)}</p>` + steps +
+        (type === 'mix' ? `<p style="margin-top:8px">“14의 ${fracHTML(2, 7)}는 얼마?” 문제도 나와요. 똑같이 묶어서 세면 돼요!</p>` : '');
       box.appendChild(text);
       el.appendChild(box);
     },
@@ -156,75 +389,217 @@
       if (type === 'mix') type = pick(['what', 'many']);
       const p = ctx.review || makeProblem(ctx.level, type);
       ctx.setData(p);
+      const total = p.d * p.s, part = p.n * p.s;
+      const draw = ctx.options.group !== 'shown';
 
       const cols = h('div', 'th-cols');
       const left = h('div', 'th-visual');
       const right = h('div', 'th-answer-col');
       cols.appendChild(left); cols.appendChild(right);
       el.appendChild(cols);
+      left.appendChild(h('div', 'th-question q-what', questionHTML(p)));
 
-      left.appendChild(h('div', 'th-question', questionHTML(p)));
-      const pic = h('div');
-      const hint = h('div', 'th-hint', hintHTML(p));
-      left.appendChild(pic);
-      left.appendChild(hint);
-      const steps = h('div');
-      left.appendChild(steps);
+      const picWrap = h('div');
+      picWrap.style.width = '100%';
+      left.appendChild(picWrap);
+      let field = null;
+      const bar = h('div', 'draw-bar');
+      const tip = h('span', 'draw-tip');
+      const cnt = h('span', 'draw-count');
+      const undoBtn = h('button', 'th-btn', '↩ 하나 취소');
+      const resetBtn = h('button', 'th-btn', '다시 묶기');
+      undoBtn.type = resetBtn.type = 'button';
+      bar.appendChild(tip); bar.appendChild(cnt); bar.appendChild(undoBtn); bar.appendChild(resetBtn);
 
-      const hl = p.t === 'what' ? 'part' : null;
-      function showGrouped(strong) {
-        pic.innerHTML = '';
-        pic.appendChild(drawFrogs(p, 'grouped', strong ? (p.t === 'what' ? 'part' : 'pick') : hl));
-        hint.hidden = false;
+      function showField(interactive) {
+        picWrap.innerHTML = '';
+        field = makeField(p, {
+          draw: interactive,
+          say: (t, k) => ctx.say(t, k),
+          surface: left,
+          onChange: n => { cnt.textContent = n ? `${n}묶음` : ''; },
+          onGroupsDone: grouped
+        });
+        picWrap.appendChild(field.el);
+        if (interactive) {
+          tip.innerHTML = p.t === 'what'
+            ? `✏️ <b>${p.s}마리씩</b> 동그라미를 그려 묶어요`
+            : `✏️ 똑같이 <b>${p.d}묶음</b>이 되게 묶어요`;
+          cnt.textContent = '';
+          left.appendChild(bar);
+        } else {
+          field.autoGroup();
+          bar.remove();
+        }
       }
+      undoBtn.addEventListener('click', () => field && field.undo());
+      resetBtn.addEventListener('click', () => field && field.reset());
 
-      if (ctx.level === 1) { showGrouped(true); }
-      else if (ctx.level === 2) {
-        pic.appendChild(drawFrogs(p, 'loose', hl));
-        hint.hidden = true;
-        ctx.later(() => showGrouped(false));
-      } else {
-        hint.hidden = true;
-      }
+      /* ---------- 오른쪽: 단계 / 바로 답 ---------- */
+      const wait = h('div', 'wait-note', '먼저 개구리를 묶어 봐요 🐸');
+      right.appendChild(wait);
+      const stepsBox = h('div', 'steps');
+      right.appendChild(stepsBox);
+      const direct = h('div', 'direct');
+      right.appendChild(direct);
 
-      // 답 칸
-      let slots;
-      const ansRow = h('div');
+      let directSlots;
       if (p.t === 'what') {
         const f = T.fraction();
-        ansRow.appendChild(f.el);
-        slots = f.slots;
+        f.num.el.classList.add('num-s'); f.den.el.classList.add('den-s');
+        direct.appendChild(f.el);
+        directSlots = f.slots;
       } else {
         const s = T.slot({ max: 2, label: '답' });
-        ansRow.appendChild(s.el);
-        ansRow.appendChild(h('span', 'unit', '마리'));
-        slots = [s];
+        direct.appendChild(s.el);
+        direct.appendChild(h('span', 'unit', '마리'));
+        directSlots = [s];
       }
-      right.appendChild(ansRow);
 
-      const pad = T.keypad({ slots, onCheck: check });
+      const sm = (cls) => { const s = T.slot({ small: true, label: '숫자 칸' }); if (cls) s.el.classList.add(cls); return s; };
+      let steps;
+      if (p.t === 'what') {
+        const a = sm('den-s'), b = sm('num-s'), fn = sm('num-s'), fd = sm('den-s');
+        const fr = h('div', 'th-frac');
+        fr.appendChild(fn.el); fr.appendChild(h('div', 'th-frac-line')); fr.appendChild(fd.el);
+        steps = [
+          { parts: [`① ${DEN('모두 몇 묶음?')}`, a, '묶음'], slots: [a],
+            ok: () => a.number === p.d,
+            why: () => a.number === total ? '개구리 수 말고 <b>묶음 수</b>를 세어 보자'
+                    : a.number === p.s ? '한 묶음 안의 개구리 말고, 묶음이 <b>모두 몇 개</b>인지 세어 보자'
+                    : a.number === p.n ? '색깔 묶음만 말고 <b>모든</b> 묶음을 세어 보자' : '',
+            help: `파란 번호를 세어 봐요: 모두 ${p.d}묶음` },
+          { parts: [`② ${NUM(part + '마리는 몇 묶음?')}`, b, '묶음'], slots: [b],
+            ok: () => b.number === p.n,
+            why: () => b.number === part ? '마리 수 말고 <b>묶음 수</b>를 세어 보자'
+                    : b.number === p.d ? '전체 말고 <b>색깔 개구리</b> 묶음만 세어 보자' : '',
+            help: `초록 묶음을 세어 봐요: ${p.n}묶음` },
+          { parts: [`③ ${NUM(josa(part, '은', '는'))} ${DEN(total)}의`, fr], slots: [fn, fd],
+            ok: () => fn.number === p.n && fd.number === p.d,
+            why: () => fracMistake(p, fn.number, fd.number),
+            help: `${DEN(p.d + '묶음')} 중 ${NUM(p.n + '묶음')} → ${colorFrac(p.n, p.d)}` }
+        ];
+      } else {
+        const a = sm(), b = sm('num-s'), c = sm();
+        steps = [
+          { parts: ['① 한 묶음은 몇 마리?', a, '마리'], slots: [a],
+            ok: () => a.number === p.s,
+            why: () => a.number === p.d ? '그건 묶음 수야. 한 묶음 안에 개구리가 <b>몇 마리</b>인지 세어 보자' : '',
+            help: `${total}마리를 ${p.d}묶음으로 똑같이 나누면 한 묶음에 ${p.s}마리` },
+          { parts: [`② ${fracJosa(p.n, p.d, '은', '는')} 몇 묶음?`, b, '묶음'], slots: [b],
+            ok: () => b.number === p.n,
+            why: () => b.number === p.d ? `아래 수 ${p.d}는 전체 묶음 수야. <b>위의 수</b>만큼 묶음을 세어 보자` : '',
+            help: `${p.d}묶음 중 ${p.n}묶음 → ${p.n}묶음` },
+          { parts: [`③ ${p.n}묶음은 몇 마리?`, c, '마리'], slots: [c],
+            ok: () => c.number === part,
+            why: () => manyMistake(p, c.number),
+            help: `${p.s}마리씩 ${p.n}묶음 → ${p.s} × ${p.n} = ${part}마리` }
+        ];
+      }
+      steps.forEach(st => {
+        const box = h('div', 'step');
+        const row = h('div', 'step-row');
+        st.parts.forEach(x => {
+          if (typeof x === 'string') row.appendChild(h('span', '', x));
+          else row.appendChild(x.el || x);
+        });
+        box.appendChild(row);
+        st.helpEl = h('div', 'step-help');
+        box.appendChild(st.helpEl);
+        st.box = box; st.wrongs = 0;
+        stepsBox.appendChild(box);
+      });
+
+      const pad = T.keypad({ slots: [], onCheck: check });
       right.appendChild(pad.el);
 
+      let mode = 'draw', cur = 0;
+      function enterSteps() {
+        mode = 'steps';
+        wait.hidden = true; direct.hidden = true; stepsBox.hidden = false;
+        focusStep();
+      }
+      function focusStep() {
+        steps.forEach((st, i) => { st.box.classList.toggle('is-now', i === cur); st.box.classList.toggle('is-done', i < cur); });
+        pad.setSlots(steps[cur].slots);
+      }
+      function enterDirect() {
+        mode = 'direct';
+        wait.hidden = true; stepsBox.hidden = true; direct.hidden = false;
+        pad.setSlots(directSlots);
+      }
+      function grouped() {
+        ctx.say('다 묶었어! 이제 세어 보자 🐸', 'info');
+        bar.remove();
+        if (ctx.level === 1) enterSteps(); else enterDirect();
+      }
+
+      // 레벨별 시작
+      if (ctx.level === 3) {
+        enterDirect();
+      } else if (draw) {
+        showField(true);
+        stepsBox.hidden = ctx.level !== 1; direct.hidden = true;
+      } else {
+        showField(false);
+        if (ctx.level === 1) enterSteps(); else enterDirect();
+      }
+
+      function finish(msg) {
+        if (p.t === 'many' && field) field.markPart(p.n);
+        ctx.correct(msg);
+      }
+
       function check() {
-        if (slots.some(s => s.value === '')) { ctx.say('빈칸에 숫자를 써 보자', 'info'); return; }
-        let ok;
-        if (p.t === 'what') {
-          const num = slots[0].number, den = slots[1].number;
-          ok = den > 0 && num > 0 && num * p.d === den * p.n;
-        } else {
-          ok = slots[0].number === p.n * p.s;
+        if (mode === 'draw') {
+          ctx.say(p.t === 'what' ? `먼저 개구리를 ${p.s}마리씩 묶어 보자` : `먼저 개구리를 똑같이 ${p.d}묶음으로 묶어 보자`, 'info');
+          return;
         }
-        if (ok) {
-          slots.forEach(s => { s.mark('right'); s.lock(); });
-          showGrouped(true);
-          ctx.correct(p.t === 'what' ? '묶음을 잘 셌어!' : '몇 마리인지 잘 찾았어!');
-        } else {
-          slots.forEach(s => s.mark('wrong'));
-          const n = ctx.wrong();
-          showGrouped(n >= 2);
-          if (n >= 2) steps.innerHTML = stepsHTML(p);
-          pad.setSlots(slots);
+        if (mode === 'direct') {
+          if (directSlots.some(s => s.value === '')) { ctx.say('빈칸에 숫자를 써 보자', 'info'); return; }
+          let ok, why;
+          if (p.t === 'what') {
+            const num = directSlots[0].number, den = directSlots[1].number;
+            ok = num === p.n && den === p.d;
+            why = fracMistake(p, num, den);
+          } else {
+            ok = directSlots[0].number === part;
+            why = manyMistake(p, directSlots[0].number);
+          }
+          if (ok) {
+            directSlots.forEach(s => { s.mark('right'); s.lock(); });
+            if (!field) showField(false);
+            finish(p.t === 'what' ? '묶음을 잘 셌어!' : '몇 마리인지 잘 찾았어!');
+            return;
+          }
+          directSlots.forEach(s => s.mark('wrong'));
+          ctx.wrong((why ? why + (/[?!.]$/.test(why) ? ' ' : '. ') : '괜찮아, ') + '단계를 따라 같이 해 보자 🐸');
+          if (!field) showField(false);
+          enterSteps();
+          return;
         }
+        const st = steps[cur];
+        if (st.slots.some(s => s.value === '')) { ctx.say('빈칸에 숫자를 써 보자', 'info'); return; }
+        if (st.ok()) {
+          st.slots.forEach(s => { s.mark('right'); s.lock(); });
+          st.helpEl.textContent = '';
+          if (p.t === 'many' && cur === 1 && field) field.markPart(p.n);
+          if (cur < steps.length - 1) {
+            cur += 1;
+            ctx.say('좋아! 다음 단계로 가 보자', 'info');
+            focusStep();
+          } else {
+            steps.forEach(x => x.box.classList.add('is-done'));
+            finish(p.t === 'what' ? '묶음을 잘 셌어!' : '단계를 차근차근 잘 풀었어!');
+          }
+          return;
+        }
+        st.slots.forEach(s => s.mark('wrong'));
+        st.wrongs += 1;
+        const why = st.why();
+        ctx.wrong(why || undefined);
+        if (st.wrongs >= 2) st.helpEl.innerHTML = '도움: ' + st.help;
+        pad.setSlots(st.slots);
       }
     }
   });
