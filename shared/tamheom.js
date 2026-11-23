@@ -113,6 +113,70 @@
     return PRAISE[i];
   }
 
+  /* ---------- 녹음 파일 (이 기기에만 저장) ----------
+   * 어른 설정에서 고른 소리 파일을 이 브라우저의 IndexedDB에만 저장합니다. 사이트에는 올라가지 않습니다.
+   * 칸: praise(칭찬, 여러 개 → 무작위), start(시작), jump(개구리 점프)
+   */
+  const CLIP_SLOTS = ['praise', 'start', 'jump'];
+  const clips = { praise: [], start: [], jump: [] };   // { id, name, url }
+  let clipsReady = null;
+  function idb() {
+    return new Promise((resolve, reject) => {
+      try {
+        const req = indexedDB.open('tamheom-audio', 1);
+        req.onupgradeneeded = () => req.result.createObjectStore('clips', { keyPath: 'id', autoIncrement: true });
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      } catch (e) { reject(e); }
+    });
+  }
+  function idbDo(mode, fn) {
+    return idb().then(db => new Promise((resolve, reject) => {
+      const tx = db.transaction('clips', mode);
+      const out = fn(tx.objectStore('clips'));
+      tx.oncomplete = () => resolve(out && out.result !== undefined ? out.result : undefined);
+      tx.onerror = () => reject(tx.error);
+    }));
+  }
+  function loadClips() {
+    clipsReady = idbDo('readonly', st => st.getAll()).then(rows => {
+      CLIP_SLOTS.forEach(k => { clips[k].forEach(c => URL.revokeObjectURL(c.url)); clips[k] = []; });
+      (rows || []).forEach(r => {
+        if (clips[r.slot]) clips[r.slot].push({ id: r.id, name: r.name, url: URL.createObjectURL(r.blob) });
+      });
+    }).catch(() => { /* 저장소를 못 쓰면 목소리(TTS)로 */ });
+    return clipsReady;
+  }
+  function addClips(slot, files) {
+    return idbDo('readwrite', st => {
+      if (slot !== 'praise') { /* 시작·점프는 하나만 */ clips[slot].forEach(c => st.delete(c.id)); }
+      Array.from(files).forEach(f => st.add({ slot, name: f.name, blob: f }));
+    }).then(loadClips);
+  }
+  function removeClip(id) { return idbDo('readwrite', st => st.delete(id)).then(loadClips); }
+  loadClips();
+
+  let currentAudio = null;
+  let lastClip = -1;
+  function playClip(slot, onDone) {
+    const list = clips[slot];
+    if (!loadSettings().sound || !list.length) return false;
+    let i = 0;
+    if (list.length > 1) { do { i = Math.floor(Math.random() * list.length); } while (i === lastClip); }
+    if (slot === 'praise') lastClip = i;
+    try {
+      if (currentAudio) currentAudio.pause();
+      if (hasSpeech) global.speechSynthesis.cancel();
+      currentAudio = new Audio(list[i].url);
+      if (onDone) currentAudio.addEventListener('ended', onDone, { once: true });
+      const p = currentAudio.play();
+      if (p && p.catch) p.catch(() => {});
+    } catch (e) { return false; }
+    return true;
+  }
+  // 칭찬: 녹음 파일이 있으면 파일, 없으면 목소리
+  function praiseSound(text) { if (!playClip('praise')) speak(text); }
+
   /* ---------- 작은 도우미 ---------- */
   function h(tag, cls, html) {
     const e = document.createElement(tag);
@@ -518,7 +582,7 @@
       }
 
       feedback(`🐸 ${text}` + (levelMsg ? `<small>${levelMsg}</small>` : ''), 'good');
-      speak(text);
+      praiseSound(text);
       logResult(first);
       if (thisQ.review) finishReview(thisQ.review.data, first);
 
@@ -550,7 +614,7 @@
       const showN = Math.min(stickers, 20);
       row.textContent = '🐸'.repeat(showN) + (stickers > showN ? ` +${stickers - showN}` : '');
       show('end');
-      speak('끝까지 잘했어! 대단해!');
+      praiseSound('끝까지 잘했어! 대단해!');
     }
 
     /* ----- 어른 설정 ----- */
@@ -614,6 +678,45 @@
       sound.appendChild(test);
       body.appendChild(sound);
 
+      // 녹음 파일
+      const audioRow = h('div', 'th-set-row');
+      audioRow.appendChild(h('div', 'th-set-label', '녹음 파일 소리 (이 기기에만 저장)'));
+      audioRow.appendChild(h('div', 'th-set-note', '칭찬 파일이 있으면 목소리 대신 파일을 무작위로 틀어요. 파일은 이 기기 브라우저에만 저장되고 사이트에는 올라가지 않아요.'));
+      const slotsInfo = [
+        { slot: 'praise', label: '칭찬 (여러 개 가능)', multiple: true },
+        { slot: 'start', label: '시작할 때' },
+        { slot: 'jump', label: '다음 문제로 갈 때 (개구리 점프)' }
+      ];
+      const recList = h('div', 'th-clip-list');
+      audioRow.appendChild(recList);
+      function paintClips() {
+        recList.innerHTML = '';
+        slotsInfo.forEach(info => {
+          const row = h('div', 'th-clip-row');
+          row.appendChild(h('div', 'th-clip-title', info.label));
+          clips[info.slot].forEach(c => {
+            const item = h('div', 'th-clip');
+            const play = h('button', 'th-seg-btn', '▶ ' + c.name.replace(/\.[^.]+$/, ''));
+            play.type = 'button';
+            play.addEventListener('click', () => { try { if (currentAudio) currentAudio.pause(); currentAudio = new Audio(c.url); currentAudio.play().catch(() => {}); } catch (e) {} });
+            const del = h('button', 'th-link-btn', '빼기');
+            del.type = 'button';
+            del.addEventListener('click', () => removeClip(c.id).then(paintClips));
+            item.appendChild(play); item.appendChild(del);
+            row.appendChild(item);
+          });
+          const pickBtn = h('label', 'th-seg-btn th-file-btn', clips[info.slot].length && !info.multiple ? '바꾸기' : '+ 파일 넣기');
+          const input = document.createElement('input');
+          input.type = 'file'; input.accept = 'audio/*'; input.multiple = !!info.multiple; input.hidden = true;
+          input.addEventListener('change', () => { if (input.files.length) addClips(info.slot, input.files).then(paintClips); });
+          pickBtn.appendChild(input);
+          row.appendChild(pickBtn);
+          recList.appendChild(row);
+        });
+      }
+      (clipsReady || Promise.resolve()).then(paintClips);
+      body.appendChild(audioRow);
+
       // 기록
       const rec = h('div', 'th-set-row');
       rec.appendChild(h('div', 'th-set-label', '최근 기록 (이 기기)'));
@@ -640,9 +743,9 @@
     overlay.addEventListener('click', e => { if (e.target === overlay) { overlay.hidden = true; paintStart(); } });
 
     /* ----- 버튼 연결 ----- */
-    $('.th-go').addEventListener('click', () => { speak('시작!'); startSession(); });
+    $('.th-go').addEventListener('click', () => { if (!playClip('start')) speak('시작!'); startSession(); });
     $('.th-intro-go').addEventListener('click', () => { show('play'); loadQuestion(); });
-    $('.th-next').addEventListener('click', () => loadQuestion());
+    $('.th-next').addEventListener('click', () => { playClip('jump'); loadQuestion(); });
     $('.th-again').addEventListener('click', () => { paintStart(); startSession(); });
 
     paintStart();

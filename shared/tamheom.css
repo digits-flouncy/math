@@ -203,3 +203,9 @@ body.th {
 .th-answer-col .th-next { width: 232px; display: none; }
 .th-answer-col .th-next.is-shown { display: inline-flex; }
 .th-answer-col .th-feedback:empty { display: none; }
+
+/* 녹음 파일 */
+.th-clip-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.th-clip-title { width: 100%; font-weight: 700; font-size: 0.95rem; }
+.th-clip { display: inline-flex; align-items: center; }
+.th-file-btn { display: inline-flex; align-items: center; cursor: pointer; }
