@@ -206,6 +206,16 @@
     return fracHTML(n, d) + (has ? withBatchim : without);
   }
 
+  // 낱말 뒤 조사: 해님 연못은, 가게는, 개구리가 ... (한글 받침 기준, 숫자로 끝나면 숫자 읽기 기준)
+  function josaW(word, withBatchim, without) {
+    const s = String(word), c = s.charCodeAt(s.length - 1);
+    let has;
+    if (c >= 0xAC00 && c <= 0xD7A3) has = (c - 0xAC00) % 28 !== 0;
+    else if (/[0-9]$/.test(s)) has = [0, 1, 3, 6, 7, 8].includes(+s[s.length - 1]);
+    else has = false;
+    return s + (has ? withBatchim : without);
+  }
+
   /* ---------- 숫자 칸 + 화면 키패드 ----------
    * 아이패드에서 시스템 키보드가 화면을 가리지 않도록 화면 키패드를 씁니다.
    */
@@ -841,5 +851,5 @@
     toastTimer = setTimeout(() => toastEl.classList.remove('is-on'), kind === 'retry' ? 3500 : 2200);
   }
 
-  global.Tamheom = { activity, slot, fraction, keypad, toast, speak, randInt, pick, h, store, josa, fracHTML, fracJosa };
+  global.Tamheom = { activity, slot, fraction, keypad, toast, speak, randInt, pick, h, store, josa, josaW, fracHTML, fracJosa };
 })(window);
