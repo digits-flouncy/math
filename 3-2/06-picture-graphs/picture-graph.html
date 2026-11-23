@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>그림그래프</title>
+<link rel="stylesheet" href="../../shared/tamheom.css?v=17" />
+<style>
+  /* 그림그래프: [이름 | 그림] 표. 큰 그림·작은 그림은 크기로 구분 */
+  .pg { width: 100%; background: #fff; border: 3px solid var(--line); border-radius: 18px; padding: 10px 14px 8px; }
+  .pg-title { text-align: center; font-size: 1.35rem; font-weight: 900; color: var(--accent); margin-bottom: 6px; }
+  .pg-grid { display: grid; grid-template-columns: max-content minmax(0, 1fr); border: 2px solid #b9d4be; border-radius: 12px; overflow: hidden; }
+  .pg-h { background: #e6f2e8; font-weight: 800; font-size: 1.15rem; padding: 6px 14px; text-align: center; white-space: nowrap; }
+  .pg-h + .pg-h { border-left: 2px solid #b9d4be; }
+  .pg-cat {
+    font-size: 1.3rem; font-weight: 800; padding: 0 12px; display: flex; align-items: center; justify-content: center;
+    border-top: 2px solid var(--line); border-right: 2px solid #b9d4be; white-space: nowrap; transition: opacity .2s;
+  }
+  .pg-icons {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 2px 2px; padding: 4px 10px; min-height: 62px;
+    border-top: 2px solid var(--line); transition: opacity .2s;
+  }
+  .ic { line-height: 1; display: inline-block; }
+  .ic-l { font-size: 38px; }
+  .ic-m { font-size: 28px; }
+  .ic-s { font-size: 20px; }
+  /* 비대상 줄은 회색 대신 같은 색을 연하게 (이름은 연한 초록) */
+  .pg-icons.is-dim { opacity: 0.4; }
+  .pg-cat.is-dim { color: #9cc8a8; }
+  .pg-cell.is-now { background: #fff6d6; }
+  .pg-legend { display: flex; justify-content: flex-end; align-items: center; gap: 18px; margin-top: 6px; font-size: 1.15rem; font-weight: 800; }
+  .pg-legend span { display: inline-flex; align-items: center; gap: 4px; }
+
+  /* 그리기 (나타내기) */
+  .pg-cell.is-target { background: #fffbe8; cursor: pointer; }
+  .pg-icons.is-target { outline: 3px dashed #e0b34a; outline-offset: -5px; flex-wrap: wrap; }
+  .pg-icons.is-target:empty::after { content: '여기를 눌러 그려요'; color: #b8862a; font-size: 1.1rem; font-weight: 700; }
+  .pg-tools { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: nowrap; white-space: nowrap; }
+  .pg-tools.is-off { visibility: hidden; }
+  .tool {
+    min-height: 66px; padding: 4px 14px; border-radius: 16px; border: 3px solid var(--line); background: #fff;
+    font-size: 1.2rem; font-weight: 800; color: var(--ink); display: inline-flex; align-items: center; gap: 8px;
+    cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  }
+  .tool.is-on { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .tool-fn { font-size: 1.15rem; color: var(--ink-soft); padding: 4px 14px; }
+  .pg-ghost { position: fixed; z-index: 60; pointer-events: none; transform: translate(-50%, -50%); line-height: 1; }
+
+  /* 문제 문장 한 줄 + 오른쪽 풀이 */
+  .q-line { font-size: 1.75rem; white-space: nowrap; margin: 10px 0 10px; }
+  .th-play .th-cols { align-items: start; grid-template-columns: minmax(0, 1.8fr) minmax(430px, 1fr); }
+  .th-play .th-visual { justify-content: flex-start; }
+  .th-answer-col .th-bottom-play { display: none; }
+  .fs-label .ic-l { font-size: 34px; vertical-align: middle; }
+  .fs-label .ic-m { font-size: 26px; vertical-align: middle; }
+  .fs-label .ic-s { font-size: 19px; vertical-align: middle; }
+  .fs-draw { font-size: 1.3rem; font-weight: 800; text-align: center; line-height: 1.4; }
+  .pg-direct { display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .pg-direct[hidden], .pg-steps[hidden] { display: none; }
+  .pg-direct .th-slot { width: 120px; }
+  .step-help { font-size: 1.1rem; color: var(--retry); }
+  .step-help:empty { display: none; }
+
+  /* 고르는 문제: 숫자 패드 자리에 이름 버튼, 확인은 같은 자리 */
+  .th-oneline .th-answer-col .choice-pad { grid-template-columns: repeat(2, 160px); }
+  .th-oneline .th-answer-col .choice-pad .th-key { font-size: 1.4rem; height: 78px; }
+  .th-oneline .th-answer-col .choice-pad .th-key-check { font-size: 1.5rem; height: 72px; }
+  .choice-pad .th-key.is-picked { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 3px var(--accent); }
+  .choice-pad .th-key.is-wrong { border-color: #d9a35e; background: var(--retry-soft); color: var(--retry); }
+  .choice-pad .th-key.is-right { border-color: var(--good); background: var(--good-soft); color: var(--good); }
+  .choice-pad .th-key-check { grid-column: 1 / -1; }
+  .choice-head { font-size: 1.45rem; font-weight: 800; white-space: nowrap; }
+
+  /* 짧은 설명 */
+  .intro-ex { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: center; }
+  .intro-steps { font-size: 1.15rem; line-height: 1.8; text-align: left; }
+  .intro-steps li { list-style: none; }
+  .intro-steps .ic-l { font-size: 30px; } .intro-steps .ic-m { font-size: 24px; } .intro-steps .ic-s { font-size: 18px; }
+  @media (max-width: 760px) { .intro-ex { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<script src="../../shared/tamheom.js?v=17"></script>
+<script>
+(function () {
+  const T = Tamheom;
+  const { randInt, pick, h, josaW } = T;
+
+  // 주소 끝 ?t=read(알아보기) | make(나타내기) | use(해석하기)
+  const MODE = ({ read: 'read', make: 'make', use: 'use' })[new URLSearchParams(location.search).get('t')] || 'read';
+
+  /* ---------- 자료 ---------- */
+  const THEMES = [
+    { title: '연못별 개구리 수',         head: '연못', what: '개구리',     unit: '마리', icon: '🐸', cats: ['해님 연못', '달님 연못', '별님 연못', '구름 연못'] },
+    { title: '반별로 딴 사과 수',        head: '반',   what: '사과',       unit: '개',   icon: '🍎', cats: ['1반', '2반', '3반', '4반'] },
+    { title: '마을별 해바라기 수',       head: '마을', what: '해바라기',   unit: '송이', icon: '🌻', cats: ['초록 마을', '파랑 마을', '노랑 마을', '분홍 마을'] },
+    { title: '가게별 팔린 아이스크림 수', head: '가게', what: '아이스크림', unit: '개',   icon: '🍦', cats: ['개굴 가게', '폴짝 가게', '연잎 가게', '퐁당 가게'] }
+  ];
+  // 그림 한 개가 나타내는 수 (큰 것부터)
+  const SCALES = { s1: [10, 1], s2: [100, 10], s3: [100, 50, 10] };
+  const SIZE = { 2: ['l', 's'], 3: ['l', 'm', 's'] };
+  const NAME = { 2: ['큰', '작은'], 3: ['큰', '중간', '작은'] };
+
+  function decompose(v, sc) {
+    if (sc === 's1') return [Math.floor(v / 10), v % 10];
+    if (sc === 's2') return [Math.floor(v / 100), (v % 100) / 10];
+    return [Math.floor(v / 100), (v % 100) >= 50 ? 1 : 0, (v % 50) / 10];
+  }
+  const iconCount = (v, sc) => decompose(v, sc).reduce((a, b) => a + b, 0);
+  function ic(th, sc, k) { return `<span class="ic ic-${SIZE[SCALES[sc].length][k]}">${th.icon}</span>`; }
+  const fmt = n => n.toLocaleString('ko-KR');
+
+  // 서로 다른 값 n개
+  function genVals(n, level, sc) {
+    for (let t = 0; t < 200; t++) {
+      let vals;
+      if (sc === 's1') {
+        const maxT = level === 1 ? 3 : 5;
+        vals = Array.from({ length: n }, () => randInt(1, maxT) * 10 + (level === 1 ? randInt(1, 9) : randInt(0, 9)));
+      } else {
+        vals = Array.from({ length: n }, () => randInt(1, 4) * 100 + randInt(0, 9) * 10);
+      }
+      if (new Set(vals).size === n) return vals;
+    }
+    return [34, 21, 15, 42].slice(0, n);
+  }
+
+  /* ---------- 그림그래프 그리기 ---------- */
+  // p: { th, sc, vals, n }  opts: { empty: 그릴 줄 번호, maxIcons }
+  function makeGraph(p, opts) {
+    opts = opts || {};
+    const th = THEMES[p.th], vs = SCALES[p.sc];
+    const el = h('div', 'pg');
+    el.appendChild(h('div', 'pg-title', th.title));
+    const grid = h('div', 'pg-grid');
+    grid.appendChild(h('div', 'pg-h', th.head));
+    grid.appendChild(h('div', 'pg-h', th.what + ' 수'));
+    const rows = [];
+    p.vals.forEach((v, i) => {
+      const cat = h('div', 'pg-cell pg-cat', th.cats[i]);
+      const icons = h('div', 'pg-cell pg-icons');
+      cat.dataset.row = icons.dataset.row = i;
+      grid.appendChild(cat); grid.appendChild(icons);
+      const r = { cat, icons, counts: vs.map(() => 0) };
+      rows.push(r);
+      if (i !== opts.empty) setCounts(i, decompose(v, p.sc));
+    });
+    el.appendChild(grid);
+    const leg = h('div', 'pg-legend');
+    vs.forEach((u, k) => leg.appendChild(h('span', '', `${ic(th, p.sc, k)} ${fmt(u)}${th.unit}`)));
+    el.appendChild(leg);
+
+    function setCounts(i, counts) {
+      const r = rows[i];
+      r.counts = counts.slice();
+      r.icons.innerHTML = counts.map((c, k) => ic(th, p.sc, k).repeat(c)).join('');
+    }
+    return {
+      el, rows,
+      setCounts,
+      // 지금 보는 줄만 진하게, 나머지는 연하게 (null이면 모두 진하게)
+      focus(list) {
+        const on = list == null ? null : [].concat(list);
+        rows.forEach((r, i) => {
+          const dim = on != null && !on.includes(i);
+          r.cat.classList.toggle('is-dim', dim); r.icons.classList.toggle('is-dim', dim);
+          const now = on != null && on.includes(i) && on.length === 1;
+          r.cat.classList.toggle('is-now', now); r.icons.classList.toggle('is-now', now);
+        });
+      }
+    };
+  }
+
+  /* ---------- 오른쪽 풀이: [①② 박스] 옆에 최종 답 칸, 아래 숫자 패드 ----------
+   * spec: { head, rows: [{ label, unit, ans, max, why(v), help, row }],
+   *         fin: { kind: 'num'|'draw', unit, ans, max, why(v), help, check(), row },
+   *         direct: 바로 답하기로 시작, focus(rowList|null), onRight(msg) } */
+  function solver(right, ctx, spec) {
+    const box = h('div', 'frac-steps pg-steps');
+    box.appendChild(h('div', 'fs-head', spec.head));
+    const nRows = spec.rows.length;
+    const gridN = nRows === 2 ? 3 : nRows;
+    const qbox = h('div', 'fs-box');
+    qbox.style.gridRow = `2 / ${2 + gridN}`;
+    const steps = [];
+    const marks = '①②③④⑤';
+    spec.rows.forEach((r, i) => {
+      if (nRows === 2 && i === 1) qbox.appendChild(h('div', 'fs-gap'));
+      const s = T.slot({ small: true, max: r.max || 1, label: '숫자 칸' });
+      const row = h('div', 'fs-row');
+      row.appendChild(h('span', 'fs-label', `${marks[i]} ${r.label}`));
+      row.appendChild(s.el);
+      row.appendChild(h('span', 'fs-unit', r.unit));
+      qbox.appendChild(row);
+      steps.push(Object.assign({}, r, { slots: [s], box: row, wrongs: 0, ok: () => s.number === r.ans, why: () => (r.why ? r.why(s.number) : '') }));
+    });
+    box.appendChild(qbox);
+
+    const fin = h('div', 'fs-frac fs-many');
+    fin.style.gridRow = `2 / ${2 + gridN}`;
+    let finSlot = null;
+    if (spec.fin.kind === 'draw') {
+      fin.appendChild(h('div', 'fs-draw', '✏️ 그래프에<br>그리기'));
+    } else {
+      finSlot = T.slot({ small: true, max: spec.fin.max || 2, label: '답' });
+      const fr = h('div', 'fs-many-row');
+      fr.appendChild(finSlot.el);
+      fr.appendChild(h('span', 'fs-unit', spec.fin.unit));
+      fin.appendChild(fr);
+    }
+    box.appendChild(fin);
+    steps.push({ fin: true, slots: finSlot ? [finSlot] : [], box: fin, wrongs: 0, help: spec.fin.help, row: spec.fin.row,
+      ok: () => finSlot.number === spec.fin.ans, why: () => (spec.fin.why ? spec.fin.why(finSlot.number) : '') });
+    const help = h('div', 'step-help fs-help');
+    help.style.gridRow = String(2 + gridN);
+    box.appendChild(help);
+    box.style.gridTemplateRows = `auto repeat(${gridN}, auto) auto`;
+    right.appendChild(box);
+
+    const direct = h('div', 'pg-direct');
+    let dSlot = null;
+    if (spec.fin.kind === 'num') {
+      dSlot = T.slot({ max: spec.fin.max || 2, label: '답' });
+      direct.appendChild(dSlot.el);
+      direct.appendChild(h('span', 'unit', spec.fin.unit));
+    }
+    right.appendChild(direct);
+
+    const pad = T.keypad({ slots: [], onCheck: check, checkInPad: true });
+    right.appendChild(pad.el);
+
+    let mode = 'steps', cur = 0;
+    function focusStep() {
+      steps.forEach((st, i) => { st.box.classList.toggle('is-now', i === cur); st.box.classList.toggle('is-done', i < cur); });
+      pad.setSlots(steps[cur].slots);
+      if (spec.focus) spec.focus(steps[cur].row);
+    }
+    function enterSteps() {
+      mode = 'steps'; direct.hidden = true; box.hidden = false;
+      focusStep();
+    }
+    function enterDirect() {
+      mode = 'direct'; box.hidden = true; direct.hidden = false;
+      pad.setSlots([dSlot]);
+      if (spec.focus) spec.focus(null);
+    }
+    if (spec.direct && dSlot) enterDirect(); else enterSteps();
+
+    function done(msg) {
+      steps.forEach(x => { x.box.classList.add('is-done'); x.box.classList.remove('is-now'); });
+      if (spec.focus) spec.focus(null);
+      spec.onRight && spec.onRight();
+      ctx.correct(msg);
+    }
+    function check() {
+      if (mode === 'direct') {
+        if (dSlot.value === '') { ctx.say('빈칸에 숫자를 써 보자', 'info'); return; }
+        if (dSlot.number === spec.fin.ans) { dSlot.mark('right'); dSlot.lock(); done(spec.rightMsg); return; }
+        dSlot.mark('wrong');
+        const why = spec.fin.why ? spec.fin.why(dSlot.number) : '';
+        ctx.wrong((why ? why + '. ' : '괜찮아, ') + '단계를 따라 같이 해 보자 🐸');
+        enterSteps();
+        return;
+      }
+      const st = steps[cur];
+      if (st.fin && spec.fin.kind === 'draw') {
+        const res = spec.fin.check();
+        if (res.ok) { done(spec.rightMsg); return; }
+        st.wrongs += 1;
+        ctx.wrong(res.why || undefined);
+        if (st.wrongs >= 2) help.innerHTML = '도움: ' + st.help;
+        return;
+      }
+      if (st.slots.some(s => s.value === '')) { ctx.say('빈칸에 숫자를 써 보자', 'info'); return; }
+      if (st.ok()) {
+        st.slots.forEach(s => { s.mark('right'); s.lock(); });
+        help.textContent = '';
+        if (st.fin) { done(spec.rightMsg); return; }
+        cur += 1;
+        ctx.say(steps[cur].fin && spec.fin.kind === 'draw' ? '좋아! 이제 그래프에 그려 보자' : '좋아! 다음 단계로 가 보자', 'info');
+        focusStep();
+        return;
+      }
+      st.slots.forEach(s => s.mark('wrong'));
+      st.wrongs += 1;
+      const why = st.why();
+      ctx.wrong(why || undefined);
+      if (st.wrongs >= 2) help.innerHTML = '도움: ' + st.help;
+      pad.setSlots(st.slots);
+    }
+    return { pad };
+  }
+
+  /* ---------- 고르는 문제: 이름 버튼 + 확인 (숫자 패드와 같은 자리) ---------- */
+  function chooser(right, ctx, spec) {
+    right.appendChild(h('div', 'choice-head', spec.head));
+    const wrap = h('div', 'th-answer');
+    const grid = h('div', 'th-keypad choice-pad');
+    let picked = -1, locked = false;
+    const btns = spec.options.map((name, i) => {
+      const b = h('button', 'th-key', name);
+      b.type = 'button';
+      b.addEventListener('click', () => {
+        if (locked) return;
+        picked = i;
+        btns.forEach(x => x.classList.remove('is-picked', 'is-wrong'));
+        b.classList.add('is-picked');
+      });
+      grid.appendChild(b);
+      return b;
+    });
+    const ok = h('button', 'th-btn th-btn-primary th-check th-key th-key-check', '확인');
+    ok.type = 'button';
+    ok.addEventListener('click', () => {
+      if (locked) return;
+      if (picked < 0) { ctx.say('하나를 골라 보자', 'info'); return; }
+      if (picked === spec.ans) {
+        locked = true;
+        btns[picked].classList.remove('is-picked'); btns[picked].classList.add('is-right');
+        ctx.correct(spec.rightMsg);
+        return;
+      }
+      btns[picked].classList.remove('is-picked'); btns[picked].classList.add('is-wrong');
+      const n = ctx.wrong(spec.why(picked) || undefined);
+      if (n >= 2 && spec.onHelp) spec.onHelp();
+      picked = -1;
+    });
+    grid.appendChild(ok);
+    wrap.appendChild(grid);
+    right.appendChild(wrap);
+  }
+
+  function layoutCols(el) {
+    const cols = h('div', 'th-cols');
+    const left = h('div', 'th-visual');
+    const right = h('div', 'th-answer-col');
+    cols.appendChild(left); cols.appendChild(right);
+    el.appendChild(cols);
+    return { left, right };
+  }
+
+  /* =========================================================
+   * 1) 알아보기: 그림그래프 읽기
+   * ========================================================= */
+  function makeRead(level) {
+    const sc = level <= 2 ? 's1' : pick(['s2', 's3']);
+    const n = level === 1 ? 3 : 4;
+    const vals = genVals(n, level, sc);
+    return { m: 'read', th: randInt(0, THEMES.length - 1), sc, vals, n, k: randInt(0, n - 1) };
+  }
+  // 문제 자료로 단계를 알아냄 (복습 문제도 처음과 같은 방식으로)
+  const lvOf = p => (p.sc !== 's1' ? 3 : p.n === 3 ? 1 : 2);
+  function readQuestion(el, ctx, p) {
+    const level = lvOf(p);
+    const th = THEMES[p.th], vs = SCALES[p.sc], v = p.vals[p.k], cat = th.cats[p.k];
+    const cnt = decompose(v, p.sc), nm = NAME[vs.length];
+    const { left, right } = layoutCols(el);
+    const q = `${josaW(cat, '은', '는')} ${th.what} 몇 ${th.unit}?`;
+    left.appendChild(h('div', 'th-question q-line', q.replace(cat, `<span class="hi">${cat}</span>`)));
+    const g = makeGraph(p);
+    left.appendChild(g.el);
+
+    const rows = vs.map((u, k) => ({
+      label: `${ic(th, p.sc, k)} 몇 개?`, unit: '개', ans: cnt[k], max: 1, row: p.k,
+      why: x => (k === 0 && x === cnt[1] && cnt[0] !== cnt[1] ? `${nm[0]} 그림만 세어 보자` : (x === cnt.reduce((a, b) => a + b, 0) ? `${nm[k]} 그림만 세어 보자` : '')),
+      help: `${cat} 줄의 ${nm[k]} 그림을 하나씩 세어 봐요: ${cnt[k]}개`
+    }));
+    const parts = vs.map((u, k) => `${nm[k]} ${cnt[k]}개 → ${fmt(u * cnt[k])}`).join(', ');
+    solver(right, ctx, {
+      head: `${cat} ${th.what} 몇 ${th.unit}?`,
+      rows,
+      direct: level >= 2,
+      focus: list => g.focus(level === 1 && list == null ? p.k : list),
+      rightMsg: '그림그래프를 잘 읽었어!',
+      fin: {
+        kind: 'num', unit: th.unit, ans: v, max: String(v).length, row: p.k,
+        why: x => {
+          if (x === iconCount(v, p.sc)) return `그림 개수가 아니라, 큰 그림은 ${fmt(vs[0])}${th.unit}씩 세어 보자`;
+          const other = p.vals.indexOf(x);
+          if (other >= 0 && other !== p.k) return `그건 ${th.cats[other]} 줄이야. ${cat} 줄을 보자`;
+          if (p.sc === 's1' && x === cnt[1] * 10 + cnt[0]) return `큰 그림은 10${th.unit}, 작은 그림은 1${th.unit}이야`;
+          return '';
+        },
+        help: `${parts} → 모두 ${fmt(v)}${th.unit}`
+      }
+    });
+    g.focus(level === 1 ? p.k : null);
+  }
+
+  /* =========================================================
+   * 2) 나타내기: 표를 보고 그림그래프에 그리기
+   * ========================================================= */
+  function makeMake(level) {
+    const sc = level <= 2 ? 's1' : 's3';
+    const n = 4;
+    const k = randInt(0, n - 1);
+    let vals = genVals(n, level, sc);
+    // 3단계: 그릴 줄에 50 그림이 꼭 들어가도록
+    for (let t = 0; sc === 's3' && vals[k] % 100 < 50 && t < 100; t++) vals = genVals(n, level, sc);
+    return { m: 'make', th: randInt(0, THEMES.length - 1), sc, vals, n, k };
+  }
+  function makeQuestion(el, ctx, p) {
+    const th = THEMES[p.th], vs = SCALES[p.sc], v = p.vals[p.k], cat = th.cats[p.k];
+    const cnt = decompose(v, p.sc), nm = NAME[vs.length];
+    const { left, right } = layoutCols(el);
+    left.appendChild(h('div', 'th-question q-line', `<span class="hi">${cat}</span> <span class="hi">${fmt(v)}${th.unit}</span>를 그려요`));
+    const g = makeGraph(p, { empty: p.k });
+    left.appendChild(g.el);
+    // 다른 줄은 다 그려져 있음 → 연하게, 그릴 줄만 진하게
+    g.focus(p.k);
+    const target = g.rows[p.k];
+    target.cat.classList.add('is-target'); target.icons.classList.add('is-target');
+
+    // 도구: 큰/작은 그림 고르기(누르기) 또는 끌어다 놓기, 하나 빼기, 다시
+    const tools = h('div', 'pg-tools');
+    let tool = 0, locked = false;
+    const counts = vs.map(() => 0);
+    const MAX = 20;
+    const toolBtns = vs.map((u, k) => {
+      const b = h('button', 'tool' + (k === 0 ? ' is-on' : ''), `${ic(th, p.sc, k)} ${fmt(u)}${th.unit}`);
+      b.type = 'button';
+      tools.appendChild(b);
+      return b;
+    });
+    const undo = h('button', 'tool tool-fn', '↩ 빼기');
+    const reset = h('button', 'tool tool-fn', '다시');
+    undo.type = reset.type = 'button';
+    tools.appendChild(undo); tools.appendChild(reset);
+    left.appendChild(tools);
+
+    const order = [];   // 넣은 순서 (하나 빼기)
+    function paint() { g.setCounts(p.k, counts); }
+    function add(k) {
+      if (locked) return;
+      if (counts.reduce((a, b) => a + b, 0) >= MAX) { T.toast('그림이 너무 많아. 큰 그림을 써 보자', 'retry'); return; }
+      counts[k] += 1; order.push(k); paint();
+    }
+    function pickTool(k) { tool = k; toolBtns.forEach((b, i) => b.classList.toggle('is-on', i === k)); }
+    undo.addEventListener('click', () => { if (locked || !order.length) return; counts[order.pop()] -= 1; paint(); });
+    reset.addEventListener('click', () => { if (locked) return; counts.fill(0); order.length = 0; paint(); });
+    [target.cat, target.icons].forEach(c => c.addEventListener('click', () => add(tool)));
+
+    // 펜슬·손가락으로 끌어다 놓기 (누르기만 하면 그 그림을 고름)
+    toolBtns.forEach((b, k) => {
+      let start = null, ghost = null, pid = null;
+      b.addEventListener('pointerdown', e => {
+        if (locked) return;
+        pid = e.pointerId; start = [e.clientX, e.clientY];
+        try { b.setPointerCapture(pid); } catch (err) {}
+        pickTool(k);
+        e.preventDefault();
+      });
+      b.addEventListener('pointermove', e => {
+        if (e.pointerId !== pid || !start) return;
+        if (!ghost && Math.hypot(e.clientX - start[0], e.clientY - start[1]) > 12) {
+          ghost = h('span', `pg-ghost ic ic-${SIZE[vs.length][k]}`, th.icon);
+          document.body.appendChild(ghost);
+        }
+        if (ghost) { ghost.style.left = e.clientX + 'px'; ghost.style.top = e.clientY + 'px'; }
+      });
+      const end = e => {
+        if (e.pointerId !== pid) return;
+        pid = null; start = null;
+        if (ghost) {
+          ghost.remove(); ghost = null;
+          const under = document.elementFromPoint(e.clientX, e.clientY);
+          const cell = under && under.closest && under.closest('[data-row]');
+          if (cell && +cell.dataset.row === p.k) add(k);
+          else T.toast('노란 칸에 놓아 보자', 'info');
+        }
+      };
+      b.addEventListener('pointerup', end);
+      b.addEventListener('pointercancel', e => { if (e.pointerId === pid) { pid = null; start = null; if (ghost) { ghost.remove(); ghost = null; } } });
+    });
+
+    const nmu = k => `${nm[k]} 그림`;
+    const rows = vs.map((u, k) => ({
+      label: `${ic(th, p.sc, k)} 몇 개?`, unit: '개', ans: cnt[k], max: 1,
+      why: x => {
+        if (k === vs.length - 1 && p.sc === 's1' && x === v) return `작은 그림 1개는 1${th.unit}. 큰 그림으로 그리고 남은 수만큼만 그려요`;
+        if (p.sc === 's3' && k === 2 && x === (v % 100) / 10) return `50${th.unit} 그림을 쓰고 남은 수만큼만 그려요`;
+        return '';
+      },
+      help: k === 0 ? `${fmt(v)}${th.unit}에 ${fmt(u)}${th.unit}가 몇 번 들어갈까? → ${cnt[k]}개`
+                    : `큰 그림을 그리고 남은 수를 ${nmu(k)}로: ${cnt[k]}개`
+    }));
+    solver(right, ctx, {
+      head: `${fmt(v)}${th.unit}를 그리려면?`,
+      rows,
+      direct: false,
+      rightMsg: '그림그래프를 잘 그렸어!',
+      onRight() { locked = true; tools.classList.add('is-off'); target.cat.classList.remove('is-target'); target.icons.classList.remove('is-target'); },
+      fin: {
+        kind: 'draw',
+        help: `${vs.map((u, k) => `${nmu(k)} ${cnt[k]}개`).join(', ')} 그려요`,
+        check() {
+          const total = counts.reduce((s, c, k) => s + c * vs[k], 0);
+          if (counts.every((c, k) => c === cnt[k])) return { ok: true };
+          if (counts.every(c => c === 0)) return { ok: false, why: '노란 칸을 눌러서 그림을 그려 보자' };
+          if (total === v) return { ok: false, why: p.sc === 's1'
+            ? `수는 맞아! 작은 그림 10개는 큰 그림 1개로 바꿔 그려요`
+            : `수는 맞아! 그림 수가 가장 적게 되도록 큰 그림부터 그려요` };
+          return { ok: false, why: `지금 그린 그림은 ${fmt(total)}${th.unit}야. ${fmt(v)}${th.unit}가 되게 그려 보자` };
+        }
+      }
+    });
+  }
+
+  /* =========================================================
+   * 3) 해석하기: 가장 많은/적은 곳, 차이, 모두
+   * ========================================================= */
+  function makeUse(level) {
+    const sc = level <= 2 ? 's1' : 's2';
+    const n = level === 1 ? 3 : 4;
+    const types = level === 1 ? ['most', 'least', 'diff'] : ['most', 'least', 'diff', 'total'];
+    const q = pick(types);
+    let vals = genVals(n, level, sc);
+    // 2단계부터 '가장 많은' 문제는 가끔 그림 개수가 많은 줄이 답이 아니게 (큰 그림부터 비교하는 연습)
+    if (q === 'most' && level >= 2 && Math.random() < 0.6) {
+      for (let t = 0; t < 200; t++) {
+        const vv = genVals(n, level, sc);
+        const iMax = vv.indexOf(Math.max(...vv));
+        const cs = vv.map(x => iconCount(x, sc));
+        if (cs.indexOf(Math.max(...cs)) !== iMax && cs.filter(c => c === Math.max(...cs)).length === 1) { vals = vv; break; }
+      }
+    }
+    const p = { m: 'use', th: randInt(0, THEMES.length - 1), sc, vals, n, q };
+    if (q === 'diff') {
+      const idx = Array.from({ length: n }, (_, i) => i).sort(() => Math.random() - 0.5);
+      const [a, b] = vals[idx[0]] > vals[idx[1]] ? [idx[0], idx[1]] : [idx[1], idx[0]];
+      p.a = a; p.b = b;
+    }
+    return p;
+  }
+  function useQuestion(el, ctx, p, level) {
+    const th = THEMES[p.th], vs = SCALES[p.sc], cats = th.cats.slice(0, p.n);
+    const { left, right } = layoutCols(el);
+    const g = makeGraph(p);
+    const hi = s => `<span class="hi">${s}</span>`;
+    const u = th.unit;
+
+    if (p.q === 'most' || p.q === 'least') {
+      const most = p.q === 'most';
+      const ans = p.vals.indexOf(most ? Math.max(...p.vals) : Math.min(...p.vals));
+      const word = most ? '가장 많은' : '가장 적은';
+      const head = `${josaW(th.what, '이', '가')} ${word} ${josaW(th.head, '은', '는')}?`;
+      left.appendChild(h('div', 'th-question q-line', head.replace(word, hi(word))));
+      left.appendChild(g.el);
+      const cs = p.vals.map(x => iconCount(x, p.sc));
+      chooser(right, ctx, {
+        head: '골라서 확인을 눌러요',
+        options: cats, ans,
+        rightMsg: '큰 그림부터 잘 비교했어!',
+        why(i) {
+          const other = p.vals.indexOf(most ? Math.min(...p.vals) : Math.max(...p.vals));
+          if (i === other) return `그건 ${most ? '가장 적은' : '가장 많은'} 곳이야`;
+          if (cs[i] === Math.max(...cs) && most) return '그림 개수가 많다고 더 많은 게 아니야. 큰 그림부터 비교해 보자';
+          return '큰 그림 수를 먼저 비교하고, 같으면 작은 그림을 비교해 보자';
+        },
+        onHelp() {
+          // 큰 그림 수가 가장 많은(적은) 줄들만 진하게
+          const big = p.vals.map(x => decompose(x, p.sc)[0]);
+          const best = most ? Math.max(...big) : Math.min(...big);
+          g.focus(big.map((b, i) => (b === best ? i : -1)).filter(i => i >= 0));
+          T.toast(`${NAME[vs.length][0]} 그림이 ${most ? '가장 많은' : '가장 적은'} 줄을 보자`, 'info');
+        }
+      });
+      return;
+    }
+
+    if (p.q === 'diff') {
+      const A = cats[p.a], B = cats[p.b], va = p.vals[p.a], vb = p.vals[p.b], d = va - vb;
+      left.appendChild(h('div', 'th-question q-line', `${hi(josaW(A, '은', '는'))} ${hi(B)}보다 몇 ${u} 더 많아?`));
+      left.appendChild(g.el);
+      const len = String(Math.max(va, vb)).length;
+      solver(right, ctx, {
+        head: `몇 ${u} 더 많아?`,
+        rows: [
+          { label: A, unit: u, ans: va, max: len, row: p.a, help: `${A} 줄을 읽어요: ${fmt(va)}${u}`,
+            why: x => (x === iconCount(va, p.sc) ? `그림 개수 말고 ${u} 수를 읽어 보자` : '') },
+          { label: B, unit: u, ans: vb, max: len, row: p.b, help: `${B} 줄을 읽어요: ${fmt(vb)}${u}`,
+            why: x => (x === iconCount(vb, p.sc) ? `그림 개수 말고 ${u} 수를 읽어 보자` : '') }
+        ],
+        direct: level >= 2,
+        focus: list => g.focus(list),
+        rightMsg: '차이를 잘 구했어!',
+        fin: {
+          kind: 'num', unit: `${u} 더`, ans: d, max: len, row: [p.a, p.b],
+          why: x => (x === va + vb ? '더하기 말고 빼기로 차이를 구해 보자'
+                   : x === va || x === vb ? '두 수의 차이를 구해 보자'
+                   : x === iconCount(va, p.sc) - iconCount(vb, p.sc) ? `그림 개수의 차이 말고 ${u} 수의 차이를 구해 보자` : ''),
+          help: `${fmt(va)} − ${fmt(vb)} = ${fmt(d)}`
+        }
+      });
+      return;
+    }
+
+    // total
+    const sum = p.vals.reduce((a, b) => a + b, 0);
+    left.appendChild(h('div', 'th-question q-line', `${josaW(th.what, '은', '는')} ${hi('모두')} 몇 ${u}?`));
+    left.appendChild(g.el);
+    const len = String(Math.max(...p.vals)).length;
+    solver(right, ctx, {
+      head: `모두 몇 ${u}?`,
+      rows: p.vals.map((v, i) => ({ label: cats[i], unit: u, ans: v, max: len, row: i, help: `${cats[i]} 줄을 읽어요: ${fmt(v)}${u}`,
+        why: x => (x === iconCount(v, p.sc) ? `그림 개수 말고 ${u} 수를 읽어 보자` : '') })),
+      direct: level >= 2,
+      focus: list => g.focus(list),
+      rightMsg: '모두 잘 더했어!',
+      fin: {
+        kind: 'num', unit: u, ans: sum, max: String(sum).length, row: null,
+        why: x => (p.vals.some(v => x === sum - v) ? '빠진 줄이 없는지 보자. 모든 줄을 더해요' : ''),
+        help: `${p.vals.map(fmt).join(' + ')} = ${fmt(sum)}`
+      }
+    });
+  }
+
+  /* ---------- 짧은 설명 ---------- */
+  function intro(el, ctx) {
+    const level = ctx.level;
+    const sc = MODE === 'make' ? (level >= 3 ? 's3' : 's1') : MODE === 'use' ? (level >= 3 ? 's2' : 's1') : (level >= 3 ? 's2' : 's1');
+    const ex = sc === 's1' ? { th: 0, sc, vals: [34, 21, 15], n: 3 }
+             : sc === 's2' ? { th: 0, sc, vals: [340, 210, 150], n: 3 }
+             : { th: 0, sc, vals: [270, 150, 320], n: 3 };
+    const th = THEMES[0], vs = SCALES[sc], nm = NAME[vs.length];
+    const box = h('div', 'intro-ex');
+    const g = makeGraph(ex);
+    box.appendChild(g.el);
+    const v = ex.vals[0], cnt = decompose(v, sc);
+    const units = vs.map((u, k) => `${ic(th, sc, k)} 1개 = <b>${fmt(u)}마리</b>`).join(', ');
+    let steps;
+    if (MODE === 'read') {
+      steps = `<li>📊 ${units}</li>
+        <li>① 해님 연못 줄에서 ${nm[0]} 그림 → <b>${cnt[0]}개</b> = ${fmt(cnt[0] * vs[0])}마리</li>
+        <li>② ${nm[1]} 그림 → <b>${cnt[1]}개</b> = ${fmt(cnt[1] * vs[1])}마리</li>
+        <li>③ 더하면 해님 연못은 <b>${fmt(v)}마리</b></li>`;
+    } else if (MODE === 'make') {
+      steps = `<li>📊 ${units}</li>
+        <li>① ${fmt(v)}마리 → ${vs.map((u, k) => `${nm[k]} 그림 <b>${cnt[k]}개</b>`).join(', ')}</li>
+        <li>② 큰 그림부터! 그림 수가 가장 적게 그려요</li>
+        <li>✏️ 아래에서 그림을 고르고 <b>노란 칸</b>을 누르면 그려져요 (끌어다 놓아도 돼요)</li>`;
+    } else {
+      steps = `<li>📊 ${units}</li>
+        <li>🔍 가장 많은 곳: <b>${nm[0]} 그림</b>이 가장 많은 줄부터 찾아요</li>
+        <li>➖ 몇 마리 더 많아? 두 줄을 읽고 빼요: ${fmt(ex.vals[0])} − ${fmt(ex.vals[1])} = <b>${fmt(ex.vals[0] - ex.vals[1])}</b></li>
+        <li>➕ 모두 몇 마리? 모든 줄을 읽고 더해요</li>`;
+    }
+    const text = h('div');
+    text.innerHTML = `<ol class="intro-steps">${steps}</ol>`;
+    box.appendChild(text);
+    el.appendChild(box);
+  }
+
+  const META = {
+    read: { title: '그림그래프 읽기', sub: '큰 그림과 작은 그림을 세어 수를 읽어요', id: 'picture-graph-read',
+      levels: [
+        { name: '세어서 차근차근 읽기', desc: '큰 그림 10, 작은 그림 1. 큰 그림·작은 그림을 나눠 세고 더해요. 줄 3개.' },
+        { name: '바로 읽기', desc: '큰 그림 10, 작은 그림 1. 바로 답해요. 틀리면 나눠 세는 칸이 나와요. 줄 4개.' },
+        { name: '큰 수 읽기', desc: '100·10 또는 100·50·10 그림. 바로 답해요.' }
+      ] },
+    make: { title: '그림그래프 그리기', sub: '표의 수를 보고 그림그래프에 그려요', id: 'picture-graph-make',
+      levels: [
+        { name: '작은 수 그리기', desc: '10·1 그림, 40보다 작은 수. 그림 수를 먼저 쓰고 그려요.' },
+        { name: '조금 큰 수 그리기', desc: '10·1 그림, 60보다 작은 수.' },
+        { name: '50 그림까지', desc: '100·50·10 그림. 그림 수가 가장 적게 그려요.' }
+      ] },
+    use: { title: '그래프 해석하기', sub: '그래프를 보고 가장 많은 곳, 차이, 모두를 알아봐요', id: 'picture-graph-use',
+      levels: [
+        { name: '비교하고 차이 구하기', desc: '10·1 그림, 줄 3개. 가장 많은/적은 곳, 차이(나눠 풀기).' },
+        { name: '모두 구하기까지', desc: '10·1 그림, 줄 4개. 바로 답하고, 틀리면 나눠 푸는 칸.' },
+        { name: '큰 수로', desc: '100·10 그림. 차이와 모두를 큰 수로.' }
+      ] }
+  }[MODE];
+
+  document.title = META.title;
+  T.activity({
+    id: META.id,
+    title: META.title,
+    emoji: '📊',
+    oneLineTop: true,
+    toast: true,
+    subtitle: META.sub,
+    levels: META.levels,
+    intro,
+    question(el, ctx) {
+      const make = { read: makeRead, make: makeMake, use: makeUse }[MODE];
+      const p = ctx.review || make(ctx.level);
+      ctx.setData(p);
+      if (MODE === 'read') readQuestion(el, ctx, p);
+      else if (MODE === 'make') makeQuestion(el, ctx, p);
+      else useQuestion(el, ctx, p, lvOf(p));
+    }
+  });
+})();
+</script>
+</body>
+</html>

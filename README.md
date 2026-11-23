@@ -12,7 +12,8 @@ index.html                       메인 페이지 (활동 카드 목록)
   05-fractions/                  5단원 분수
     fraction-pizza.html          분수 탐험 (피자)
     fraction-part-whole.html     개구리 묶음 분수
-  06-picture-graphs/             6단원 그림그래프 (준비 중)
+  06-picture-graphs/             6단원 그림그래프
+    picture-graph.html           ?t=read 읽기(알아보기) · ?t=make 그리기(나타내기) · ?t=use 해석하기
 shared/
   tamheom.css                    모든 활동이 같이 쓰는 모양 (색, 버튼, 키패드, 연잎 진행 표시)
   tamheom.js                     모든 활동이 같이 쓰는 진행 틀 (아래 참고)
