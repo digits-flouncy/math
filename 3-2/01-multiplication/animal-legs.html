@@ -4,37 +4,56 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>다리가 몇 개?</title>
-<link rel="stylesheet" href="../../shared/tamheom.css?v=13" />
+<link rel="stylesheet" href="../../shared/tamheom.css?v=14" />
 <style>
-  .pens { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .legs-q { font-size: 2rem; white-space: nowrap; margin: 6px 0 10px; text-align: center; }
+  .pens { display: flex; gap: 14px; justify-content: center; }
   .pen {
-    width: 200px; border-radius: 20px; padding: 8px 10px; text-align: center;
+    width: 230px; border-radius: 20px; padding: 8px 10px; text-align: center;
     border: 3px solid #e7b3b3; background: #fff6f6;
-    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
   }
   .pen.duck { border-color: #a9cbe8; background: #f3f8fd; }
-  .pen-title { font-weight: 800; font-size: 1.05rem; }
-  .pen-title small { display: block; font-size: 0.9rem; color: var(--ink-soft); }
-  .pen-animals { font-size: 1.1rem; line-height: 1.3; word-break: break-all; }
-  .pen-count { font-size: 2rem; font-weight: 900; }
+  .pen-title { font-weight: 800; font-size: 1.15rem; }
+  .pen-title small { display: block; font-size: 0.95rem; color: var(--ink-soft); }
+  .pen-animals { font-size: 1.15rem; line-height: 1.3; word-break: break-all; }
+  .pen-count { font-size: 1.9rem; font-weight: 900; }
+  .pen-count.is-q { color: var(--accent); }
   .total {
     margin: 10px auto 0; text-align: center; background: #fff8e1; border: 3px solid #f0c35a;
-    border-radius: 18px; padding: 4px 20px; width: fit-content; font-weight: 700;
+    border-radius: 18px; padding: 4px 20px; width: fit-content; font-weight: 700; font-size: 1.2rem;
   }
-  .total b { font-size: 2rem; color: #b86a00; }
+  .total b { font-size: 1.9rem; color: #b86a00; }
+  /* 풀이: [①②③ 박스]  옆에 최종 답 (③ 줄과 같은 높이) */
+  .legs-steps { display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto auto auto; column-gap: 10px; align-items: center; justify-content: center; margin-top: 14px; }
+  .lg-box { grid-column: 1; grid-row: 1 / 4; display: grid; grid-template-rows: subgrid; border: 2px solid var(--line); border-radius: 16px; padding: 4px 6px; }
+  .lg-row { display: flex; align-items: center; gap: 4px; padding: 4px 6px; border-radius: 12px; border: 2px solid transparent; opacity: 0.45; }
+  .lg-row.is-now, .lg-final.is-now { opacity: 1; border-color: var(--accent); background: var(--accent-soft); }
+  .lg-row.is-done, .lg-final.is-done { opacity: 1; }
+  .lg-label { font-size: 1.15rem; font-weight: 800; white-space: nowrap; min-width: 112px; }
+  .calc { display: flex; align-items: center; gap: 4px; font-size: 1.4rem; font-weight: 800; white-space: nowrap; }
+  .legs-steps .th-slot-sm { height: 50px; width: 48px; font-size: 1.55rem; }
+  .lg-final { grid-column: 2; grid-row: 3; display: flex; align-items: center; gap: 4px; padding: 4px 6px; border-radius: 14px; border: 2px solid transparent; opacity: 0.45; font-size: 1.3rem; font-weight: 800; white-space: nowrap; }
+  .lg-final .th-slot { height: 58px; width: 64px; font-size: 1.8rem; }
+  .legs-steps.is-direct .lg-box { display: none; }
+  .legs-steps.is-direct .lg-final { grid-column: 1 / -1; grid-row: 1; justify-self: center; margin-top: 30px; font-size: 1.6rem; }
+  .legs-steps.is-direct .lg-final .th-slot { height: 72px; width: 84px; font-size: 2.2rem; }
+  .lg-help { grid-column: 1 / -1; grid-row: 4; text-align: center; font-size: 1.1rem; color: var(--retry); margin-top: 6px; min-height: 1.4em; }
+  .th-play .th-cols { grid-template-columns: minmax(0, 1fr) 350px; }
+  .th-play .th-answer-col { align-self: stretch; justify-content: center; }
+  .th-answer-col .th-keypad { grid-template-columns: repeat(3, 96px); gap: 10px; }
+  .th-answer-col .th-key { height: 72px; font-size: 2.1rem; border-radius: 16px; }
+  .th-answer-col .th-key-fn { font-size: 1.3rem; }
+  .th-answer-col .th-key-check { font-size: 1.5rem; }
+  .th-answer-col .th-bottom-play { display: none; }
+  /* 처음 설명 화면 */
   .steps { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
-  .step { border: 2px solid var(--line); border-radius: 16px; padding: 6px 12px; opacity: 0.45; }
-  .step .th-slot-sm { height: 50px; }
-  .step.is-now { opacity: 1; border-color: var(--accent); background: var(--accent-soft); }
-  .step.is-done { opacity: 1; }
+  .step { border: 2px solid var(--line); border-radius: 16px; padding: 6px 12px; }
   .step-label { font-weight: 800; color: var(--accent); margin-bottom: 4px; }
-  .legs-q { font-size: 1.6rem; margin-bottom: 8px; }
-  .calc { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 1.5rem; font-weight: 800; }
-  .step-help { font-size: 1rem; color: var(--retry); margin-top: 6px; }
 </style>
 </head>
 <body>
-<script src="../../shared/tamheom.js?v=13"></script>
+<script src="../../shared/tamheom.js?v=14"></script>
 <script>
 (function () {
   const T = Tamheom;
@@ -57,6 +76,8 @@
     subtitle: '전체 다리 수를 보고 모르는 동물이 몇 마리인지 찾아요',
     accent: '#2f6f9f',
     accentSoft: '#e7f1fa',
+    oneLineTop: true,
+    toast: true,
     levels: [
       { name: '단계 따라 풀기 + 도움 숫자', desc: '작은 수. 풀이 3단계를 하나씩, 첫 단계 숫자는 미리 써 있어요.' },
       { name: '단계 따라 풀기',             desc: '풀이 3단계를 하나씩 직접 채워요.' },
@@ -85,25 +106,21 @@
       const hidLegs = total - knownLegs;
 
       const cols = h('div', 'th-cols');
-      const left = h('div');
+      const left = h('div', 'th-visual');
       const right = h('div', 'th-answer-col');
       cols.appendChild(left); cols.appendChild(right);
       el.appendChild(cols);
 
       left.appendChild(h('div', 'th-question legs-q', `${hid.emoji} ${hid.name}는 몇 마리일까요?`));
 
-      // 우리
+      // 우리 (모르는 동물은 ?)
       const pens = h('div', 'pens');
-      const finalSlot = T.slot({ max: 2, label: `${hid.name} 마리 수` });
       ['pig', 'duck'].forEach(k => {
         const a = A[k];
         const pen = h('div', 'pen ' + k);
         pen.appendChild(h('div', 'pen-title', `${a.emoji} ${a.name} 우리<small>1마리 = 다리 ${a.legs}개</small>`));
         if (k === p.hide) {
-          const row = h('div');
-          row.appendChild(finalSlot.el);
-          row.appendChild(h('span', 'unit', ' 마리'));
-          pen.appendChild(row);
+          pen.appendChild(h('div', 'pen-count is-q', '?마리'));
         } else {
           const c = k === 'pig' ? p.pig : p.duck;
           pen.appendChild(h('div', 'pen-animals', c <= 12 ? a.emoji.repeat(c) : ''));
@@ -114,53 +131,62 @@
       left.appendChild(pens);
       left.appendChild(h('div', 'total', `전체 다리 수 <b>${total}</b>개`));
 
-      // 풀이 단계 (과제 분석)
-      const stepsBox = h('div', 'steps');
-      left.appendChild(stepsBox);
+      // 풀이: [①②③ 박스] 옆에 최종 답 칸 (③ 줄 높이). 마지막 답도 아이가 직접 씀.
       const pre = ctx.level === 1;
-      const s1a = T.slot({ small: true, value: pre ? knownCount : null }), s1b = T.slot({ small: true, value: pre ? known.legs : null }), s1c = T.slot({ small: true, max: 3 });
-      const s2b = T.slot({ small: true, max: 3 }), s2c = T.slot({ small: true, max: 3 });
-      const s3a = T.slot({ small: true, max: 3 }), s3b = T.slot({ small: true }), s3c = T.slot({ small: true });
+      const sm = o => T.slot(Object.assign({ small: true }, o || {}));
+      const s1a = sm({ value: pre ? knownCount : null }), s1b = sm({ value: pre ? known.legs : null }), s1c = sm({ max: 3 });
+      const s2b = sm({ max: 3 }), s2c = sm({ max: 3 });
+      const s3a = sm({ max: 3 }), s3b = sm(), s3c = sm();
+      const finalSlot = T.slot({ max: 2, label: `${hid.name} 마리 수` });
       if (pre) { s1a.lock(); s1b.lock(); }
 
       const steps = [
-        { label: `① ${known.emoji} ${known.name}의 다리 수`, parts: [s1a, '×', s1b, '=', s1c, '개'], slots: pre ? [s1c] : [s1a, s1b, s1c],
+        { label: `① ${known.emoji} 다리`, parts: [s1a, '×', s1b, '=', s1c, '개'], slots: pre ? [s1c] : [s1a, s1b, s1c],
           ok: () => ((s1a.number === knownCount && s1b.number === known.legs) || (s1a.number === known.legs && s1b.number === knownCount)) && s1c.number === knownLegs,
           help: `${known.name} ${knownCount}마리 × 다리 ${known.legs}개 = ${knownLegs}개` },
-        { label: `② ${hid.emoji} ${hid.name}의 다리 수`, parts: [`<span class="th-fixed-num">${total}</span>`, '−', s2b, '=', s2c, '개'], slots: [s2b, s2c],
+        { label: `② ${hid.emoji} 다리`, parts: [`<span class="th-fixed-num">${total}</span>`, '−', s2b, '=', s2c, '개'], slots: [s2b, s2c],
           ok: () => s2b.number === knownLegs && s2c.number === hidLegs,
-          help: `${total} − ${knownLegs} = ${hidLegs}` },
-        { label: `③ ${hid.emoji} ${hid.name}는 몇 마리?`, parts: [s3a, '÷', s3b, '=', s3c, '마리'], slots: [s3a, s3b, s3c],
+          help: `전체 ${total} − ${known.name} 다리 ${knownLegs} = ${hidLegs}` },
+        { label: `③ ${hid.emoji} 몇 마리?`, parts: [s3a, '÷', s3b, '=', s3c, '마리'], slots: [s3a, s3b, s3c],
           ok: () => s3a.number === hidLegs && s3b.number === hid.legs && s3c.number === answer,
-          help: `${hid.name} 다리 ${hidLegs}개 ÷ 한 마리 다리 ${hid.legs}개 = ${answer}마리` }
+          help: `${hid.name} 다리 ${hidLegs}개 ÷ 한 마리 다리 ${hid.legs}개 = ${answer}마리` },
+        { slots: [finalSlot], ok: () => finalSlot.number === answer,
+          help: `③에서 구한 수가 ${hid.name}의 마리 수예요` }
       ];
-      steps.forEach(st => {
-        const box = h('div', 'step');
-        box.appendChild(h('div', 'step-label', st.label));
+      const stepsBox = h('div', 'legs-steps');
+      const box = h('div', 'lg-box');
+      steps.slice(0, 3).forEach(st => {
+        const row = h('div', 'lg-row');
+        row.appendChild(h('span', 'lg-label', st.label));
         const calc = h('div', 'calc');
-        st.parts.forEach(x => {
-          if (typeof x === 'string') calc.appendChild(h('span', '', x));
-          else calc.appendChild(x.el);
-        });
-        box.appendChild(calc);
-        st.helpEl = h('div', 'step-help');
-        box.appendChild(st.helpEl);
-        st.box = box;
-        st.wrongs = 0;
-        stepsBox.appendChild(box);
+        st.parts.forEach(x => calc.appendChild(typeof x === 'string' ? h('span', '', x) : x.el));
+        row.appendChild(calc);
+        st.box = row;
+        box.appendChild(row);
       });
+      stepsBox.appendChild(box);
+      const fin = h('div', 'lg-final');
+      fin.appendChild(h('span', '', hid.emoji));
+      fin.appendChild(finalSlot.el);
+      fin.appendChild(h('span', '', '마리'));
+      stepsBox.appendChild(fin);
+      steps[3].box = fin;
+      const help = h('div', 'lg-help');
+      stepsBox.appendChild(help);
+      steps.forEach(st => { st.wrongs = 0; });
+      left.appendChild(stepsBox);
 
       let mode = ctx.level <= 2 ? 'steps' : 'direct';
       let cur = 0;
-      const pad = T.keypad({ slots: [], onCheck: check });
+      const pad = T.keypad({ slots: [], onCheck: check, checkInPad: true });
       right.appendChild(pad.el);
 
       function enterSteps() {
         mode = 'steps';
-        stepsBox.hidden = false;
+        cur = 0;
+        stepsBox.classList.remove('is-direct');
         finalSlot.clear();
         finalSlot.mark(null);
-        finalSlot.el.classList.remove('is-open', 'is-active');
         focusStep();
       }
       function focusStep() {
@@ -172,7 +198,7 @@
       }
 
       if (mode === 'steps') enterSteps();
-      else { stepsBox.hidden = true; pad.setSlots([finalSlot]); }
+      else { stepsBox.classList.add('is-direct'); fin.classList.add('is-now'); pad.setSlots([finalSlot]); }
 
       function check() {
         if (mode === 'direct') {
@@ -187,14 +213,12 @@
         if (st.slots.some(s => s.value === '')) { ctx.say('빈칸에 숫자를 써 보자', 'info'); return; }
         if (st.ok()) {
           st.slots.forEach(s => { s.mark('right'); s.lock(); });
-          st.helpEl.textContent = '';
+          help.textContent = '';
           if (cur < steps.length - 1) {
             cur += 1;
-            ctx.say('좋아! 다음 단계로 가 보자', 'info');
             focusStep();
           } else {
-            finalSlot.set(answer); finalSlot.mark('right'); finalSlot.lock();
-            steps.forEach(x => x.box.classList.add('is-done'));
+            steps.forEach(x => { x.box.classList.remove('is-now'); x.box.classList.add('is-done'); });
             ctx.correct('단계를 차근차근 잘 풀었어!');
           }
           return;
@@ -202,7 +226,7 @@
         st.slots.forEach(s => s.mark('wrong'));
         st.wrongs += 1;
         ctx.wrong();
-        if (st.wrongs >= 2) st.helpEl.textContent = '도움: ' + st.help;
+        if (st.wrongs >= 2) help.textContent = '도움: ' + st.help;
         pad.setSlots(st.slots);
       }
     }

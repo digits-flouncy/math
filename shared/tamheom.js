@@ -609,6 +609,8 @@
     function feedback(text, kind) {
       // 활동이 메시지를 직접 보여 주고 싶으면(예: 잠깐 떴다 사라지는 안내) onFeedback 사용
       if (cfg.onFeedback) { cfg.onFeedback(text, kind); return; }
+      // toast: true → 메시지를 화면 아래 가운데에 잠깐 띄움 (확정 디자인)
+      if (cfg.toast) { toast(text, kind); return; }
       const fb = $('.th-feedback');
       fb.innerHTML = text;
       fb.className = 'th-feedback is-' + kind;
@@ -826,5 +828,16 @@
     show('start');
   }
 
-  global.Tamheom = { activity, slot, fraction, keypad, speak, randInt, pick, h, store, josa, fracHTML, fracJosa };
+  /* ----- 잠깐 떴다 사라지는 안내 (화면 아래 가운데, 그림을 가리지 않음) ----- */
+  let toastEl = null, toastTimer = null;
+  function toast(text, kind) {
+    if (!text) return;
+    if (!toastEl) { toastEl = h('div', 'th-toast'); toastEl.setAttribute('role', 'status'); document.body.appendChild(toastEl); }
+    toastEl.innerHTML = text;
+    toastEl.className = 'th-toast is-on' + (kind === 'retry' ? ' is-retry' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('is-on'), kind === 'retry' ? 3500 : 2200);
+  }
+
+  global.Tamheom = { activity, slot, fraction, keypad, toast, speak, randInt, pick, h, store, josa, fracHTML, fracJosa };
 })(window);

@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>개구리 묶음 분수</title>
-<link rel="stylesheet" href="../../shared/tamheom.css?v=13" />
+<link rel="stylesheet" href="../../shared/tamheom.css?v=14" />
 <style>
   :root { --num: #2e9d4f; --num-soft: #d9f2df; --den: #2f6fc9; --den-soft: #dde9fa; }
   .num-c { color: var(--num); }
@@ -97,16 +97,6 @@
   .th-answer-col .th-key-check { font-size: 1.5rem; }
 
   .q-what { font-size: 1.75rem; white-space: nowrap; margin: 14px 0 12px; }
-  /* 잠깐 떴다 사라지는 안내 (화면 아래 가운데, 개구리를 가리지 않고 화면도 밀지 않음) */
-  .toast {
-    position: fixed; left: 50%; bottom: 18px; transform: translate(-50%, 10px); z-index: 5;
-    width: max-content; max-width: 90vw; padding: 12px 26px; border-radius: 22px; font-size: 1.7rem; font-weight: 800; text-align: center;
-    background: var(--accent); color: #fff; box-shadow: 0 6px 20px rgba(0,0,0,.18);
-    opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s;
-  }
-  .toast.is-on { opacity: 1; transform: translate(-50%, 0); }
-  .toast.is-retry { background: #b8741f; }
-  .toast small { display: block; font-size: 1rem; font-weight: 700; margin-top: 4px; }
   .th-answer-col .th-bottom-play { display: none; }
   .th-play .th-cols { align-items: start; grid-template-columns: minmax(0, 1.4fr) minmax(470px, 1fr); }
   .th-play .th-visual { justify-content: flex-start; }
@@ -118,7 +108,7 @@
 </style>
 </head>
 <body>
-<script src="../../shared/tamheom.js?v=13"></script>
+<script src="../../shared/tamheom.js?v=14"></script>
 <script>
 (function () {
   const T = Tamheom;
@@ -140,14 +130,7 @@
     return { t: type, d, s, n };
   }
 
-  let toastEl = null, toastTimer = null;
-  function showToast(text, kind) {
-    if (!toastEl || !text) return;
-    toastEl.innerHTML = text;
-    toastEl.className = 'toast is-on' + (kind === 'retry' ? ' is-retry' : '');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toastEl.classList.remove('is-on'), kind === 'retry' ? 3500 : 2200);
-  }
+  const showToast = (text, kind) => Tamheom.toast(text, kind);
   const hi = s => `<span class="hi">${s}</span>`;
   const NUM = s => `<span class="num-c">${s}</span>`;
   const DEN = s => `<span class="den-c">${s}</span>`;
@@ -403,7 +386,7 @@
     title: '개구리 묶음 분수',
     emoji: '🐸',
     oneLineTop: true,
-    onFeedback: (text, kind) => showToast(text, kind),
+    toast: true,
     subtitle: '개구리를 묶어서 몇분의 몇인지 알아봐요',
     levels: [
       { name: '묶고 차근차근 풀기', desc: '펜슬이나 손가락으로 개구리를 묶고, 세 번에 나눠 풀어요. 작은 수.' },
@@ -611,7 +594,6 @@
 
       const pad = T.keypad({ slots: [], onCheck: check, checkInPad: true });
       right.appendChild(pad.el);
-      if (!toastEl) { toastEl = h('div', 'toast'); document.body.appendChild(toastEl); }
 
       let mode = 'draw', cur = 0;
       function enterSteps() {
