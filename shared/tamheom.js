@@ -58,13 +58,19 @@
 
   /* ---------- 음성 칭찬 (브라우저 기본 목소리) ---------- */
   const hasSpeech = 'speechSynthesis' in global && 'SpeechSynthesisUtterance' in global;
+  // 한국어 목소리만 씁니다. 목소리 목록은 늦게 도착하는 경우가 많아서(크롬, 사파리)
+  // 말할 때마다 다시 찾고, 한국어 목소리가 없으면 외국어 목소리로 읽지 않고 조용히 넘어갑니다.
   let koVoice = null;
+  const isKo = v => /^ko([-_]|$)/i.test(v.lang || '');
   function pickVoice() {
     try {
-      const voices = global.speechSynthesis.getVoices();
-      koVoice = voices.find(v => /^ko/i.test(v.lang) && /yuna|유나/i.test(v.name)) ||
-                voices.find(v => /^ko/i.test(v.lang)) || null;
+      const voices = global.speechSynthesis.getVoices().filter(isKo);
+      koVoice = voices.find(v => /yuna|유나/i.test(v.name) && v.localService) ||
+                voices.find(v => /yuna|유나/i.test(v.name)) ||
+                voices.find(v => v.localService) ||
+                voices[0] || null;
     } catch (e) { koVoice = null; }
+    return koVoice;
   }
   if (hasSpeech) {
     pickVoice();
@@ -73,15 +79,18 @@
   }
   function speak(text) {
     if (!hasSpeech || !loadSettings().sound) return;
+    if (!koVoice) pickVoice();
+    if (!koVoice) return;                       // 한국어 목소리가 없으면 말하지 않음
     try {
-      global.speechSynthesis.cancel();
+      const synth = global.speechSynthesis;
+      if (synth.speaking || synth.pending) synth.cancel();
       const u = new SpeechSynthesisUtterance(text.replace(/[^\p{L}\p{N}\s!?.,]/gu, ''));
-      u.lang = 'ko-KR';
-      if (koVoice) u.voice = koVoice;
+      u.voice = koVoice;
+      u.lang = koVoice.lang.replace('_', '-');
       u.rate = 0.95;
-      u.pitch = 1.15;
+      u.pitch = 1.1;
       u.volume = 1;
-      global.speechSynthesis.speak(u);
+      synth.speak(u);
     } catch (e) { /* 목소리가 없어도 글자 칭찬은 보임 */ }
   }
 
@@ -580,7 +589,7 @@
       body.appendChild(seg('바로 3번 맞히면 단계 올리기', onOff, s.autoUp, v => upd('autoUp', v)));
       body.appendChild(seg('한 문제를 2번 틀리면 단계 낮추기', onOff, s.autoDown, v => upd('autoDown', v)));
       const sound = seg('칭찬 목소리', onOff, s.sound, v => upd('sound', v),
-        hasSpeech ? (koVoice ? `목소리: ${koVoice.name}` : '기기의 한국어 목소리를 씁니다.') : '이 브라우저는 목소리를 지원하지 않아요.');
+        hasSpeech ? (pickVoice() ? `목소리: ${koVoice.name} (${koVoice.lang})` : '이 기기에서 한국어 목소리를 찾지 못했어요. 외국어로 읽지 않도록 목소리는 꺼 둬요. 기기 설정의 음성(말하기) 메뉴에서 한국어 목소리를 받으면 나와요.') : '이 브라우저는 목소리를 지원하지 않아요.');
       const test = h('button', 'th-link-btn', '▶ 목소리 들어보기');
       test.type = 'button';
       test.addEventListener('click', () => { const x = loadSettings(); if (!x.sound) return; speak(randomPraise()); });
