@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>분수</title>
+<link rel="stylesheet" href="../../shared/tamheom.css?v=19" />
+<style>
+  /* 문제 문장: 한 줄, 큰 글씨 */
+  .fm-q { font-size: 1.9rem; white-space: nowrap; text-align: center; margin: 6px 0 14px; }
+  .fm-pic { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+  .fm-pic svg { display: block; max-width: 100%; height: auto; }
+  .fm-note { font-size: 1.15rem; color: var(--ink-soft); text-align: center; min-height: 1.5em; }
+
+  /* 자 (분수만큼의 길이) */
+  .tape-part { fill: #fde7c8; stroke: #c2620f; stroke-width: 2; }
+  .tape-part.on { fill: #f4a261; }
+  .ruler-body { fill: #fff8e6; stroke: #8a7a66; stroke-width: 2; }
+  .ruler-tick { stroke: #6b5a45; stroke-width: 1.6; }
+  .ruler-num { font-size: 15px; font-weight: 700; fill: #6b5a45; }
+  .tape-lab { font-size: 17px; font-weight: 800; fill: #c2620f; }
+
+  /* 막대 그림 (여러 가지 분수, 크기 비교) */
+  .cell { fill: #fff; stroke: #8a7a66; stroke-width: 2; }
+  .cell.on { fill: var(--cell-on, #9fd3a8); }
+  .whole { fill: none; stroke: #4a3f33; stroke-width: 3.5; rx: 6; }
+  .bar-lab { font-size: 20px; font-weight: 800; fill: var(--ink); }
+
+  /* 대분수 답 칸: [자연수] [분수] */
+  .fs-mixed { grid-template-columns: auto auto; column-gap: 6px; }
+  .fs-mixed > .mx-whole { grid-column: 1; grid-row: 1 / 4; align-self: center; }
+  .fs-mixed > .mx-num { grid-column: 2; grid-row: 1; }
+  .fs-mixed > .fs-line { grid-column: 2; grid-row: 2; }
+  .fs-mixed > .mx-den { grid-column: 2; grid-row: 3; }
+  .fs-mixed .mx-whole.th-slot-sm { height: 64px; width: 58px; font-size: 2rem; }
+  .fs-cm { grid-template-rows: none; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .fs-cm .th-slot-sm { height: 62px; width: 64px; font-size: 2rem; }
+  .frac-steps.is-direct .fs-box { display: none; }
+  .frac-steps.is-direct > .fs-frac { grid-column: 1 / -1; justify-self: center; }
+
+  /* 크기 비교: > = < 큰 버튼 */
+  .cmp-q { display: flex; align-items: center; justify-content: center; gap: 18px; font-size: 2.4rem; font-weight: 900; margin: 4px 0 14px; }
+  .cmp-q .th-mini-frac { font-size: 1.7rem; }
+  .cmp-circle { width: 72px; height: 72px; border-radius: 50%; border: 4px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 2.6rem; color: var(--accent); background: #fff; }
+  .mixed { display: inline-flex; align-items: center; gap: 4px; }
+  .cmp-btns { display: grid; grid-template-columns: repeat(3, 110px); gap: 14px; justify-content: center; }
+  .cmp-btn { height: 110px; border-radius: 22px; border: 3px solid var(--line); background: #fff; font-size: 3.4rem; font-weight: 900; color: var(--ink); cursor: pointer; }
+  .cmp-btn:active { transform: scale(.96); }
+  .cmp-btn.is-right { border-color: #2e9d4f; background: #d9f2df; }
+  .cmp-btn.is-wrong { border-color: #b8741f; background: #fdf0e3; }
+  .cmp-side { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+  .cmp-side .th-check { width: 360px; height: 80px; font-size: 1.8rem; }
+  .cmp-help { font-size: 1.15rem; color: var(--retry); text-align: center; min-height: 1.5em; max-width: 380px; }
+
+  .th-play .th-cols { grid-template-columns: minmax(0, 1.25fr) minmax(460px, 1fr); }
+  .th-answer-col .th-bottom-play { display: none; }
+  .intro-ex { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: center; }
+  .intro-steps { padding-left: 1.2em; display: flex; flex-direction: column; gap: 8px; font-size: 1.15rem; }
+</style>
+</head>
+<body>
+<script src="../../shared/tamheom.js?v=19"></script>
+<script>
+(function () {
+  const T = Tamheom;
+  const { randInt, pick, h, fracHTML, fracJosa } = T;
+  const MODE = ({ length: 'length', kinds: 'kinds', compare: 'compare' })[new URLSearchParams(location.search).get('t')] || 'length';
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const NUM = s => `<span class="num-c">${s}</span>`;
+  const DEN = s => `<span class="den-c">${s}</span>`;
+  function svg(tag, attrs) {
+    const e = document.createElementNS(SVGNS, tag);
+    Object.entries(attrs || {}).forEach(([k, v]) => e.setAttribute(k, v));
+    return e;
+  }
+  // 대분수 글: 2와 1/4
+  const mixedHTML = (w, n, d) => n ? `<span class="mixed">${w}${fracHTML(n, d)}</span>` : String(w);
+  // 조사: 분수는 분자 읽기, 대분수도 분자 읽기를 따름
+  const josaNum = (n, a, b) => ([0, 1, 3, 6, 7, 8].includes(n % 10) ? a : b);
+
+  /* ---------- 공통: 단계 풀이 흐름 ----------
+   * steps: [{ slots, ok, why, help, box }] 마지막 단계가 최종 답.
+   * direct: true 이면 최종 답만 먼저 (틀리면 단계로)
+   */
+  function runSteps(ctx, pad, steps, opts) {
+    const help = opts.help, stepsBox = opts.stepsBox;
+    let mode = opts.direct ? 'direct' : 'steps', cur = 0;
+    const last = steps[steps.length - 1];
+    steps.forEach(st => { st.wrongs = 0; });
+    function focus() {
+      steps.forEach((st, i) => { st.box.classList.toggle('is-now', i === cur); st.box.classList.toggle('is-done', i < cur); });
+      pad.setSlots(steps[cur].slots);
+    }
+    if (mode === 'steps') focus();
+    else { stepsBox.classList.add('is-direct'); last.box.classList.add('is-now'); pad.setSlots(last.slots); }
+
+    return function check() {
+      if (mode === 'direct') {
+        if (last.slots.some(s => s.value === '')) { ctx.say('빈칸에 숫자를 써 보자', 'info'); return; }
+        if (last.ok()) {
+          last.slots.forEach(s => { s.mark('right'); s.lock(); });
+          if (opts.onDone) opts.onDone();
+          ctx.correct(opts.praise);
+          return;
+        }
+        const why = last.why();
+        last.slots.forEach(s => s.mark('wrong'));
+        ctx.wrong((why ? why + (/[?!.]$/.test(why) ? ' ' : '. ') : '괜찮아, ') + '하나씩 같이 해 보자 🐸');
+        last.slots.forEach(s => s.clear());
+        mode = 'steps'; cur = 0;
+        stepsBox.classList.remove('is-direct');
+        last.box.classList.remove('is-now');
+        if (opts.onSteps) opts.onSteps();
+        focus();
+        return;
+      }
+      const st = steps[cur];
+      if (st.slots.some(s => s.value === '')) { ctx.say('빈칸에 숫자를 써 보자', 'info'); return; }
+      if (st.ok()) {
+        st.slots.forEach(s => { s.mark('right'); s.lock(); });
+        help.innerHTML = '';
+        if (st.onOk) st.onOk();
+        if (cur < steps.length - 1) { cur += 1; focus(); }
+        else {
+          steps.forEach(x => { x.box.classList.remove('is-now'); x.box.classList.add('is-done'); });
+          if (opts.onDone) opts.onDone();
+          ctx.correct(opts.praise);
+        }
+        return;
+      }
+      const why = st.why ? st.why() : '';
+      st.slots.forEach(s => s.mark('wrong'));
+      st.wrongs += 1;
+      ctx.wrong(why || undefined);
+      if (st.wrongs >= 2) help.innerHTML = '도움: ' + st.help;
+      pad.setSlots(st.slots);
+    };
+  }
+
+  // [①② 박스] + 옆 최종 답. rows: 위에서부터 보일 순서 [{label, slot, unit, step}]
+  function stepsLayout(head, rows, finalEl) {
+    const stepsBox = h('div', 'frac-steps');
+    const qbox = h('div', 'fs-box');
+    rows.forEach((r, i) => {
+      const row = h('div', 'fs-row');
+      row.appendChild(h('span', 'fs-label', r.label));
+      row.appendChild(r.slot.el);
+      if (r.unit) row.appendChild(h('span', 'fs-unit', r.unit));
+      r.step.box = row;
+      if (i === 1) qbox.appendChild(h('div', 'fs-gap'));
+      qbox.appendChild(row);
+    });
+    stepsBox.appendChild(h('div', 'fs-head', head));
+    stepsBox.appendChild(qbox);
+    stepsBox.appendChild(finalEl);
+    const help = h('div', 'step-help fs-help');
+    stepsBox.appendChild(help);
+    return { stepsBox, help };
+  }
+  const sm = (cls, max) => { const s = T.slot({ small: true, max: max || 2, label: '숫자 칸' }); if (cls) s.el.classList.add(cls); return s; };
+  function fracFinal() {
+    const fn = sm('num-s'), fd = sm('den-s');
+    const fr = h('div', 'fs-frac');
+    fr.appendChild(fn.el); fr.appendChild(h('div', 'fs-line')); fr.appendChild(fd.el);
+    return { el: fr, fn, fd };
+  }
+  function mixedFinal() {
+    const w = sm(''), fn = sm('num-s'), fd = sm('den-s');
+    w.el.classList.add('mx-whole'); fn.el.classList.add('mx-num'); fd.el.classList.add('mx-den');
+    const fr = h('div', 'fs-frac fs-mixed');
+    fr.appendChild(w.el); fr.appendChild(fn.el); fr.appendChild(h('div', 'fs-line')); fr.appendChild(fd.el);
+    return { el: fr, w, fn, fd };
+  }
+
+  /* ---------- 그림: 자와 끈 ---------- */
+  function drawRuler(L, d, onParts) {
+    const W = 560, x0 = 20, unit = (W - 40) / L;
+    const s = svg('svg', { viewBox: `0 0 ${W} 170`, width: W, role: 'img', 'aria-label': `${L}cm 끈과 자` });
+    const parts = [];
+    const pw = L / d * unit;
+    for (let i = 0; i < d; i++) {
+      const r = svg('rect', { x: x0 + i * pw, y: 18, width: pw, height: 40, class: 'tape-part', rx: 4 });
+      s.appendChild(r); parts.push(r);
+    }
+    s.appendChild(svg('rect', { x: x0 - 12, y: 76, width: W - 16, height: 70, rx: 8, class: 'ruler-body' }));
+    for (let c = 0; c <= L; c++) {
+      const x = x0 + c * unit;
+      s.appendChild(svg('line', { x1: x, y1: 76, x2: x, y2: 76 + (c % 5 === 0 ? 30 : 20), class: 'ruler-tick' }));
+      if (L <= 14 || c % 2 === 0 || c === L) {
+        const t = svg('text', { x, y: 128, 'text-anchor': 'middle', class: 'ruler-num' });
+        t.textContent = c; s.appendChild(t);
+      }
+      if (c < L) {
+        const xm = x + unit / 2;
+        s.appendChild(svg('line', { x1: xm, y1: 76, x2: xm, y2: 88, class: 'ruler-tick', 'stroke-width': 1 }));
+      }
+    }
+    const u = svg('text', { x: W - 18, y: 160, 'text-anchor': 'end', class: 'ruler-num' }); u.textContent = '(cm)'; s.appendChild(u);
+    return { el: s, color(n) { parts.forEach((p, i) => p.classList.toggle('on', i < n)); } };
+  }
+
+  /* ---------- 그림: 막대 (한 덩어리 = 1, d칸) ---------- */
+  function drawBars(total, d, opts) {
+    // total: 색칠할 칸 수(가분수의 분자), wholes: 그릴 덩어리 수
+    opts = opts || {};
+    const wholes = opts.wholes || Math.max(1, Math.ceil(total / d));
+    const maxW = opts.width || 540, gap = 14;
+    const ww = Math.min(150, (maxW - gap * (wholes - 1)) / wholes);
+    const cw = ww / d, H = opts.height || 54;
+    const W = wholes * ww + gap * (wholes - 1) + 8;
+    const s = svg('svg', { viewBox: `0 0 ${W} ${H + 8}`, width: W, role: 'img' });
+    if (opts.color) s.style.setProperty('--cell-on', opts.color);
+    let k = 0;
+    for (let w = 0; w < wholes; w++) {
+      const x = 4 + w * (ww + gap);
+      for (let i = 0; i < d; i++, k++) {
+        s.appendChild(svg('rect', { x: x + i * cw, y: 4, width: cw, height: H, class: 'cell' + (k < total ? ' on' : '') }));
+      }
+      s.appendChild(svg('rect', { x, y: 4, width: ww, height: H, class: 'whole' }));
+    }
+    return s;
+  }
+
+  /* ================= 1) 분수만큼의 길이 ================= */
+  function makeLength(level) {
+    const R = [null, { L: [6, 8, 9, 10, 12], d: [2, 3, 4] }, { L: [10, 12, 14, 15, 16, 18, 20], d: [2, 3, 4, 5, 6, 7] }, { L: [12, 14, 15, 16, 18, 20], d: [3, 4, 5, 6, 7] }][level];
+    let L, d, tries = 0;
+    do { L = pick(R.L); d = pick(R.d); tries++; } while ((L % d !== 0 || L / d < 2) && tries < 300);
+    if (L % d !== 0) { L = 12; d = 3; }
+    const n = randInt(1, d - 1);
+    return { L, d, n };
+  }
+  function lengthQuestion(el, ctx, p) {
+    const s = p.L / p.d, ans = s * p.n;
+    const cols = h('div', 'th-cols'), left = h('div', 'th-visual'), right = h('div', 'th-answer-col');
+    cols.appendChild(left); cols.appendChild(right); el.appendChild(cols);
+    left.appendChild(h('div', 'th-question fm-q', `🎀 ${p.L} cm의 ${fracJosa(p.n, p.d, '은', '는')} 몇 cm일까요?`));
+    const pic = h('div', 'fm-pic');
+    const ru = drawRuler(p.L, p.d);
+    pic.appendChild(ru.el);
+    pic.appendChild(h('div', 'fm-note', `리본 ${p.L} cm를 똑같이 ${p.d}칸으로 나눴어요`));
+    left.appendChild(pic);
+
+    const a = sm(''), b = sm('num-s');
+    const fin = h('div', 'fs-frac fs-cm');
+    const c = sm('');
+    fin.appendChild(c.el); fin.appendChild(h('span', 'fs-unit', 'cm'));
+    const steps = [
+      { slots: [a], ok: () => a.number === s,
+        why: () => a.number === p.d ? '그건 칸 수야. 한 칸이 <b>몇 cm</b>인지 자를 보고 세어 보자' : a.number === p.L ? '리본 전체 말고 <b>한 칸</b>의 길이야' : '',
+        help: `${p.L} cm를 ${p.d}칸으로 똑같이 나누면 한 칸은 ${s} cm` },
+      { slots: [b], ok: () => b.number === p.n, onOk: () => ru.color(p.n),
+        why: () => b.number === p.d ? `아래 수 ${p.d}는 전체 칸 수야. <b>위의 수</b>만큼이야` : '',
+        help: `${fracHTML(p.n, p.d)}는 ${p.d}칸 중 ${p.n}칸` },
+      { slots: [c], ok: () => c.number === ans,
+        why: () => c.number === p.n ? `${p.n}칸 말고 <b>몇 cm</b>인지 구해 보자` : c.number === s ? '한 칸 말고 색칠한 칸을 모두 더해 보자' : '',
+        help: `${s} cm씩 ${p.n}칸 → ${s} × ${p.n} = ${ans} cm`, box: fin }
+    ];
+    const { stepsBox, help } = stepsLayout(`${p.L} cm의 ${fracJosa(p.n, p.d, '은', '는')} 몇 cm?`, [
+      { label: `① 한 칸은`, slot: a, unit: 'cm', step: steps[0] },
+      { label: `② ${fracJosa(p.n, p.d, '은', '는')} 몇 칸?`, slot: b, unit: '칸', step: steps[1] }
+    ], fin);
+    right.appendChild(stepsBox);
+    const pad = T.keypad({ slots: [], onCheck: () => check(), checkInPad: true });
+    right.appendChild(pad.el);
+    const check = runSteps(ctx, pad, steps, { help, stepsBox, direct: ctx.level === 3, praise: '길이를 잘 구했어!', onDone: () => ru.color(p.n) });
+  }
+
+  /* ================= 2) 여러 가지 분수: 가분수 ↔ 대분수 ================= */
+  function makeKinds(level) {
+    const R = [null, { d: [2, 3, 4], w: [1, 2] }, { d: [3, 4, 5, 6], w: [1, 2, 3] }, { d: [4, 5, 6, 7, 8], w: [1, 2, 3] }][level];
+    const d = pick(R.d), w = pick(R.w), n = randInt(1, d - 1);
+    return { k: pick(['toMixed', 'toImproper']), d, w, n };
+  }
+  function kindsQuestion(el, ctx, p) {
+    const top = p.w * p.d + p.n;
+    const cols = h('div', 'th-cols'), left = h('div', 'th-visual'), right = h('div', 'th-answer-col');
+    cols.appendChild(left); cols.appendChild(right); el.appendChild(cols);
+    const toMixed = p.k === 'toMixed';
+    left.appendChild(h('div', 'th-question fm-q', toMixed
+      ? `${fracJosa(top, p.d, '을', '를')} 대분수로 나타내 보세요`
+      : `${mixedHTML(p.w, p.n, p.d)}${josaNum(p.n, '을', '를')} 가분수로 나타내 보세요`));
+    const pic = h('div', 'fm-pic');
+    pic.appendChild(drawBars(top, p.d, { wholes: p.w + 1 }));
+    pic.appendChild(h('div', 'fm-note', `막대 하나 = 1, ${p.d}칸으로 나눴어요 (한 칸 = ${fracHTML(1, p.d)})`));
+    left.appendChild(pic);
+
+    let steps, layout;
+    if (toMixed) {
+      // ① 꽉 찬 막대 몇 개? (자연수) ② 남은 칸? (분자) → [w] n/d
+      const a = sm(''), b = sm('num-s');
+      const f = mixedFinal();
+      steps = [
+        { slots: [a], ok: () => a.number === p.w,
+          why: () => a.number === top ? '칸 수 말고 <b>꽉 찬 막대</b>가 몇 개인지 세어 보자' : '',
+          help: `${p.d}칸이 모두 칠해진 막대가 ${p.w}개` },
+        { slots: [b], ok: () => b.number === p.n,
+          why: () => b.number === top ? '모든 칸 말고, 꽉 찬 막대 <b>밖에 남은</b> 칸만 세어 보자' : '',
+          help: `꽉 찬 막대 말고 남은 칸은 ${p.n}칸` },
+        { slots: [f.w, f.fd, f.fn], box: f.el,
+          ok: () => f.w.number === p.w && f.fn.number === p.n && f.fd.number === p.d,
+          why: () => (f.fd.number === top || f.fn.number === top) ? '큰 수는 <b>앞</b>에, 남은 칸은 분수로 써 보자' : f.fd.number !== p.d ? `아래 수(분모)는 막대 한 개의 칸 수 ${p.d}야` : '',
+          help: `${T.josa(p.w, '과', '와')} ${fracHTML(p.n, p.d)} → ${mixedHTML(p.w, p.n, p.d)}` }
+      ];
+      layout = stepsLayout(`${fracJosa(top, p.d, '은', '는')} 대분수로?`, [
+        { label: `② 남은 칸은`, slot: b, unit: '칸', step: steps[1] },
+        { label: `① 꽉 찬 막대는`, slot: a, unit: '개', step: steps[0] }
+      ], f.el);
+    } else {
+      // ① 꽉 찬 막대 w개는 몇 칸? ② 모두 몇 칸? → top/d
+      const a = sm('', 3), b = sm('num-s');
+      const f = fracFinal();
+      steps = [
+        { slots: [a], ok: () => a.number === p.w * p.d,
+          why: () => a.number === p.w ? `막대 수 말고 <b>칸 수</b>야. 막대 하나는 ${p.d}칸` : '',
+          help: `${p.d}칸씩 ${p.w}개 → ${p.d} × ${p.w} = ${p.w * p.d}칸` },
+        { slots: [b], ok: () => b.number === top,
+          why: () => b.number === p.w * p.d ? `남은 ${p.n}칸도 더해 보자` : '',
+          help: `${p.w * p.d}칸 + ${p.n}칸 = ${top}칸` },
+        { slots: [f.fd, f.fn], box: f.el,
+          ok: () => f.fn.number === top && f.fd.number === p.d,
+          why: () => (f.fn.number === p.d && f.fd.number === top) ? '위아래가 바뀌었어. 모든 칸 수는 위, 막대 한 개의 칸 수는 아래' : f.fn.number === p.n ? '남은 칸만 말고 <b>모든</b> 칠한 칸을 위에 써 보자' : '',
+          help: `${DEN('막대 한 개 ' + p.d + '칸')}은 아래, ${NUM('칠한 칸 모두 ' + top)}은 위 → ${fracHTML(top, p.d)}` }
+      ];
+      layout = stepsLayout(`${mixedHTML(p.w, p.n, p.d)}${josaNum(p.n, '은', '는')} 가분수로?`, [
+        { label: `② 칠한 칸은 모두`, slot: b, unit: '칸', step: steps[1] },
+        { label: `① 꽉 찬 막대 ${p.w}개는`, slot: a, unit: '칸', step: steps[0] }
+      ], f.el);
+    }
+    right.appendChild(layout.stepsBox);
+    const pad = T.keypad({ slots: [], onCheck: () => check(), checkInPad: true });
+    right.appendChild(pad.el);
+    const check = runSteps(ctx, pad, steps, { help: layout.help, stepsBox: layout.stepsBox, direct: ctx.level === 3, praise: toMixed ? '대분수로 잘 바꿨어!' : '가분수로 잘 바꿨어!' });
+  }
+
+  /* ================= 3) 분수 크기 비교 ================= */
+  // 분수 하나: { w, n, d } (w=0 이면 진분수/가분수 n/d, 아니면 대분수 w n/d). 값 = (w*d + n)/d
+  const val = f => f.w * f.d + f.n;
+  const fHTML = f => f.w ? mixedHTML(f.w, f.n, f.d) : fracHTML(f.n, f.d);
+  function makeCompare(level) {
+    const d = pick(level === 1 ? [3, 4, 5, 6, 7] : [3, 4, 5, 6, 7, 8, 9]);
+    const imp = () => ({ w: 0, n: randInt(d + 1, d * 3 - 1), d });
+    const mix = () => ({ w: randInt(1, 3), n: randInt(1, d - 1), d });
+    const toImp = f => ({ w: 0, n: val(f), d });
+    let A, B, kind;
+    if (level === 1) { kind = 'imp'; A = imp(); B = imp(); }
+    else if (level === 2) { kind = 'mix'; A = mix(); B = Math.random() < 0.35 ? { w: A.w, n: randInt(1, d - 1), d } : mix(); }
+    else { kind = 'cross'; A = mix(); B = Math.random() < 0.3 ? toImp(A) : imp(); if (Math.random() < 0.5) [A, B] = [B, A]; }
+    if (Math.random() < 0.12) { // 가끔 같은 수 (대분수와 가분수면 서로 바꾼 꼴로)
+      if (kind !== 'cross') B = Object.assign({}, A);
+      else if (A.w) B = toImp(A);
+      else if (A.n % d) B = { w: Math.floor(A.n / d), n: A.n % d, d };
+    }
+    return { kind, A, B };
+  }
+  function compareQuestion(el, ctx, p) {
+    const a = val(p.A), b = val(p.B), d = p.A.d;
+    const ans = a > b ? '>' : a < b ? '<' : '=';
+    const cols = h('div', 'th-cols'), left = h('div', 'th-visual'), right = h('div', 'th-answer-col');
+    cols.appendChild(left); cols.appendChild(right); el.appendChild(cols);
+    left.appendChild(h('div', 'th-question fm-q', '두 분수의 크기를 비교해 보세요'));
+    const circ = h('div', 'cmp-circle', '');
+    const q = h('div', 'cmp-q');
+    q.appendChild(h('span', '', fHTML(p.A))); q.appendChild(circ); q.appendChild(h('span', '', fHTML(p.B)));
+    left.appendChild(q);
+    const pic = h('div', 'fm-pic');
+    const wholes = Math.max(1, Math.ceil(Math.max(a, b) / d));
+    const row = (f, color) => { const r = h('div'); r.style.display = 'flex'; r.style.alignItems = 'center'; r.style.gap = '14px';
+      const lab = h('span', 'cmp-lab', fHTML(f)); lab.style.fontSize = '1.4rem'; lab.style.fontWeight = '900'; lab.style.minWidth = '70px'; lab.style.textAlign = 'right';
+      r.appendChild(lab); r.appendChild(drawBars(val(f), d, { wholes, width: 440, height: 44, color })); return r; };
+    pic.appendChild(row(p.A, '#9fd3a8'));
+    pic.appendChild(row(p.B, '#a9c9f0'));
+    pic.appendChild(h('div', 'fm-note', `막대 하나 = 1, 한 칸 = ${fracHTML(1, d)}`));
+    left.appendChild(pic);
+
+    const side = h('div', 'cmp-side');
+    side.appendChild(h('div', 'fs-head', `○ 안에 >, =, < 를 골라요`));
+    const btns = h('div', 'cmp-btns');
+    let chosen = null;
+    ['>', '=', '<'].forEach(sgn => {
+      const bt = h('button', 'cmp-btn', sgn); bt.type = 'button';
+      bt.addEventListener('click', () => {
+        if (done) return;
+        chosen = sgn; circ.textContent = sgn;
+        btns.querySelectorAll('.cmp-btn').forEach(x => x.classList.remove('is-right', 'is-wrong'));
+        bt.style.borderColor = 'var(--accent)';
+        btns.querySelectorAll('.cmp-btn').forEach(x => { if (x !== bt) x.style.borderColor = ''; });
+      });
+      btns.appendChild(bt);
+    });
+    side.appendChild(btns);
+    const help = h('div', 'cmp-help');
+    side.appendChild(help);
+    const ok = h('button', 'th-btn th-btn-primary th-check th-key-check', '확인'); ok.type = 'button';
+    side.appendChild(ok);
+    right.appendChild(side);
+    let done = false, wrongs = 0;
+    const hint = () => {
+      if (p.kind === 'imp') return `분모가 같으면 <b>분자</b>가 큰 쪽이 커요: ${T.josa(p.A.n, '과', '와')} ${p.B.n}`;
+      if (p.kind === 'mix') return p.A.w !== p.B.w ? `대분수는 <b>자연수</b>부터 비교해요: ${T.josa(p.A.w, '과', '와')} ${p.B.w}` : `자연수가 같으면 <b>분자</b>를 비교해요: ${T.josa(p.A.n, '과', '와')} ${p.B.n}`;
+      return `둘 다 가분수로 바꿔 봐요: ${fracHTML(a, d)}, ${fracHTML(b, d)}`;
+    };
+    ok.addEventListener('click', () => {
+      if (done) return;
+      if (!chosen) { ctx.say('>, =, < 중에서 하나를 골라 보자', 'info'); return; }
+      const bt = Array.from(btns.children).find(x => x.textContent === chosen);
+      if (chosen === ans) {
+        done = true; bt.classList.add('is-right');
+        ctx.correct('크기를 잘 비교했어!');
+        return;
+      }
+      wrongs += 1;
+      bt.classList.add('is-wrong'); bt.style.borderColor = '';
+      chosen = null; circ.textContent = '';
+      ctx.wrong(wrongs === 1 ? '막대 그림에서 칠한 칸을 비교해 보자 🐸' : undefined);
+      help.innerHTML = '도움: ' + hint();
+    });
+  }
+
+  /* ---------- 설명 화면 ---------- */
+  function intro(el) {
+    const box = h('div', 'intro-ex');
+    const pic = h('div', 'fm-pic');
+    const text = h('div');
+    if (MODE === 'length') {
+      const ru = drawRuler(12, 3); ru.color(2); pic.appendChild(ru.el);
+      text.innerHTML = `<p class="th-question" style="text-align:left;font-size:1.35rem">12 cm의 ${fracJosa(2, 3, '은', '는')} 몇 cm?</p>
+        <ol class="intro-steps"><li>리본 12 cm를 똑같이 <b>3칸</b>으로 나눠요</li>
+        <li>① 한 칸은 <b>4 cm</b></li><li>② ${fracJosa(2, 3, '은', '는')} 3칸 중 <b>2칸</b></li><li>4 cm씩 2칸 → <b>8 cm</b></li></ol>`;
+    } else if (MODE === 'kinds') {
+      pic.appendChild(drawBars(9, 4, { wholes: 3, width: 420 }));
+      text.innerHTML = `<p class="th-question" style="text-align:left;font-size:1.35rem">${fracHTML(9, 4)} = ${mixedHTML(2, 1, 4)}</p>
+        <ol class="intro-steps"><li>${fracHTML(1, 4)}이 9개 → ${fracHTML(9, 4)} (분자가 분모보다 크거나 같으면 <b>가분수</b>)</li>
+        <li>${fracHTML(4, 4)} = 1 → 꽉 찬 막대 <b>2개</b> = 2</li><li>남은 칸 <b>1칸</b> = ${fracHTML(1, 4)}</li>
+        <li>2와 ${fracHTML(1, 4)} → ${mixedHTML(2, 1, 4)} (<b>대분수</b>)</li></ol>`;
+    } else {
+      pic.appendChild(drawBars(13, 7, { wholes: 3, width: 420 }));
+      pic.appendChild(drawBars(15, 7, { wholes: 3, width: 420, color: '#a9c9f0' }));
+      text.innerHTML = `<p class="th-question" style="text-align:left;font-size:1.35rem">${fracHTML(13, 7)} &lt; ${fracHTML(15, 7)}</p>
+        <ol class="intro-steps"><li>분모가 같으면 <b>분자</b>가 큰 쪽이 커요</li>
+        <li>대분수끼리는 <b>자연수</b>부터, 같으면 분자를 비교해요</li>
+        <li>대분수와 가분수는 한쪽으로 <b>바꿔서</b> 비교해요</li><li>>, =, < 를 고르고 확인!</li></ol>`;
+    }
+    box.appendChild(pic); box.appendChild(text);
+    el.appendChild(box);
+  }
+
+  const META = {
+    length: { title: '분수만큼의 길이', emoji: '📏', sub: '자를 보고 분수만큼의 길이를 구해요', id: 'fraction-length',
+      levels: [
+        { name: '짧은 리본', desc: '12 cm까지. 한 칸 길이 → 몇 칸 → 몇 cm 차근차근.' },
+        { name: '긴 리본', desc: '20 cm까지, 7칸까지. 차근차근.' },
+        { name: '바로 답 쓰기', desc: '20 cm까지. 답만 써요. 틀리면 풀이 칸이 나와요.' }
+      ] },
+    kinds: { title: '가분수와 대분수', emoji: '🧩', sub: '가분수는 대분수로, 대분수는 가분수로 바꿔요', id: 'fraction-kinds',
+      levels: [
+        { name: '작은 분모', desc: '분모 2~4, 자연수 1~2. 막대 그림을 보고 차근차근.' },
+        { name: '조금 큰 분모', desc: '분모 3~6, 자연수 1~3. 차근차근.' },
+        { name: '바로 답 쓰기', desc: '분모 4~8. 답만 써요. 틀리면 풀이 칸이 나와요.' }
+      ] },
+    compare: { title: '분수 크기 비교', emoji: '⚖️', sub: '>, =, < 로 분수의 크기를 비교해요', id: 'fraction-compare',
+      levels: [
+        { name: '가분수끼리', desc: '분모가 같은 가분수 두 개 (분모 3~7).' },
+        { name: '대분수끼리', desc: '분모가 같은 대분수 두 개.' },
+        { name: '대분수와 가분수', desc: '한쪽을 바꿔서 비교해요.' }
+      ] }
+  }[MODE];
+
+  document.title = META.title;
+  T.activity({
+    id: META.id,
+    title: META.title,
+    emoji: META.emoji,
+    accent: '#c2620f',
+    accentSoft: '#fdf0e3',
+    oneLineTop: true,
+    toast: true,
+    subtitle: META.sub,
+    levels: META.levels,
+    intro,
+    question(el, ctx) {
+      const make = { length: makeLength, kinds: makeKinds, compare: makeCompare }[MODE];
+      const p = ctx.review || make(ctx.level);
+      ctx.setData(p);
+      if (MODE === 'length') lengthQuestion(el, ctx, p);
+      else if (MODE === 'kinds') kindsQuestion(el, ctx, p);
+      else compareQuestion(el, ctx, p);
+    }
+  });
+})();
+</script>
+</body>
+</html>
