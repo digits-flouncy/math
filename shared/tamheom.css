@@ -29,7 +29,7 @@ body.th {
 }
 .th button, .th a { touch-action: manipulation; font-family: inherit; }
 
-.th-app { max-width: 1100px; margin: 0 auto; padding: 10px 20px 28px; }
+.th-app { max-width: 1100px; margin: 0 auto; padding: 10px 20px 14px; }
 
 /* 위쪽 막대: 항상 같은 자리 */
 .th-top {
@@ -209,11 +209,3 @@ body.th {
 .th-clip-title { width: 100%; font-weight: 700; font-size: 0.95rem; }
 .th-clip { display: inline-flex; align-items: center; }
 .th-file-btn { display: inline-flex; align-items: center; cursor: pointer; }
-
-/* 큰 아이패드 (예: 12.9·13인치): 화면이 남지 않게 전체를 키움 */
-@media (min-width: 1200px) and (min-height: 860px) {
-  .th-top, .th-screen { zoom: 1.15; }
-}
-@media (min-width: 980px) and (max-width: 1199px) and (min-height: 1200px) {
-  .th-top, .th-screen { zoom: 1.28; }
-}

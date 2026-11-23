@@ -402,6 +402,35 @@
     function show(name) {
       Object.entries(screens).forEach(([k, el]) => { el.classList.toggle('is-shown', k === name); });
       global.scrollTo(0, 0);
+      fitToScreen();
+    }
+
+    /* 화면 맞춤: 스크롤 없이 한 화면에 다 보이도록 전체 크기를 자동으로 조절.
+     * 큰 아이패드에서는 키우고(최대 1.5배), 내용이 길어지면(힌트·풀이) 줄임(최소 0.7배).
+     * Safari 주소창·탭바 높이는 innerHeight에 이미 빠져 있음. */
+    let fitting = false;
+    function fitToScreen() {
+      if (fitting) return;
+      fitting = true;
+      const before = parseFloat(app.style.zoom) || 1;
+      app.style.zoom = '1';
+      const h = app.offsetHeight;
+      const w = app.offsetWidth;
+      const vh = global.innerHeight, vw = global.innerWidth;
+      let z = Math.min(1.5, (vh - 2) / h);
+      if (vw > w) z = Math.min(z, vw / w); else z = Math.min(z, 1);
+      z = Math.max(0.7, Math.floor(z * 100) / 100);
+      app.style.zoom = String(Math.abs(z - before) < 0.01 ? before : z);
+      fitting = false;
+    }
+    let fitQueued = false;
+    const queueFit = () => { if (fitQueued) return; fitQueued = true; requestAnimationFrame(() => { fitQueued = false; fitToScreen(); }); };
+    global.addEventListener('resize', queueFit);
+    global.addEventListener('orientationchange', queueFit);
+    if ('ResizeObserver' in global) {
+      // 문제 안 내용이 바뀌면(힌트, 풀이, 칭찬 글) 다시 맞춤
+      const ro = new ResizeObserver(() => { if (!fitting) queueFit(); });
+      app.querySelectorAll('.th-screen').forEach(el => ro.observe(el));
     }
 
     /* 소리 버튼 */
@@ -623,6 +652,7 @@
 
     /* ----- 어른 설정 ----- */
     const overlay = $('.th-overlay');
+    document.body.appendChild(overlay);   // 설정 창은 화면 맞춤 크기 조절과 따로
     function seg(label, choices, current, onPick, note) {
       const row = h('div', 'th-set-row');
       row.appendChild(h('div', 'th-set-label', label));
@@ -642,7 +672,7 @@
       return row;
     }
     function paintSettings() {
-      const body = $('.th-panel-body');
+      const body = overlay.querySelector('.th-panel-body');
       body.innerHTML = '';
       const s = loadSettings();
       const upd = (k, v) => { const x = loadSettings(); x[k] = v; saveSettings(x); paintSound(); };
@@ -744,7 +774,7 @@
       body.appendChild(rec);
     }
     $('.th-open-settings').addEventListener('click', () => { paintSettings(); overlay.hidden = false; });
-    $('.th-close-settings').addEventListener('click', () => { overlay.hidden = true; paintStart(); });
+    overlay.querySelector('.th-close-settings').addEventListener('click', () => { overlay.hidden = true; paintStart(); });
     overlay.addEventListener('click', e => { if (e.target === overlay) { overlay.hidden = true; paintStart(); } });
 
     /* ----- 버튼 연결 ----- */
