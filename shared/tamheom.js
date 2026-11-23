@@ -329,7 +329,9 @@
   function activity(cfg) {
     const id = cfg.id;
     const levels = cfg.levels;
-    const home = cfg.home || '../../index.html';
+    // 홈 버튼은 이 활동의 단원 목록으로 (예: 3-2/05-fractions/… → index.html#3-2/5)
+    const unitM = location.pathname.match(/\/(\d-\d)\/(\d+)-[^/]+\/[^/]*$/);
+    const home = cfg.home || ('../../index.html' + (unitM ? `#${unitM[1]}/${parseInt(unitM[2], 10)}` : ''));
     const optionDefaults = {};
     (cfg.options || []).forEach(o => { optionDefaults[o.key] = o.value; });
     const getOpts = () => Object.assign({}, optionDefaults, store.get('opt:' + id, {}));

@@ -6,143 +6,159 @@
 <title>수학 탐험대 🧮</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
   body {
-    font-family: 'Nanum Gothic', sans-serif;
+    font-family: 'Nanum Gothic', -apple-system, sans-serif;
     background: #f0f7ff;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 20px;
     color: #222;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
   }
+  #app { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 20px; }
+  .wrap { display: flex; flex-direction: column; align-items: center; }
 
-  h1 {
-    font-size: 2.2rem;
-    font-weight: 900;
-    color: #d45f00;
-    margin-bottom: 8px;
-    text-align: center;
+  .bar { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; min-height: 64px; }
+  .back {
+    width: 64px; height: 64px; border-radius: 18px; border: 2px solid #d6e4f2; background: #fff;
+    font-size: 1.8rem; cursor: pointer; flex: none; box-shadow: 0 3px 10px rgba(0,0,0,.06);
   }
-  .subtitle {
-    font-size: 1rem;
-    color: #888;
-    margin-bottom: 40px;
-    text-align: center;
+  h1 { font-size: 2.2rem; font-weight: 900; color: #d45f00; text-align: center; white-space: nowrap; }
+  .subtitle { font-size: 1.15rem; color: #888; margin-bottom: 28px; text-align: center; }
+
+  .grid { display: grid; gap: 20px; justify-content: center; }
+  .grid.sem { grid-template-columns: repeat(2, 280px); }
+  .grid.units { grid-template-columns: repeat(3, 250px); }
+  .grid.acts { grid-template-columns: repeat(var(--n, 3), 240px); }
+
+  .tile {
+    background: #fff; border-radius: 24px; padding: 26px 20px; text-align: center; text-decoration: none; color: inherit;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.10); border: 3px solid var(--c, #cfe0f0);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    cursor: pointer; font: inherit; transition: transform .15s;
   }
-
-  .card-list {
-    display: flex;
-    gap: 24px;
-    flex-wrap: wrap;
-    justify-content: center;
+  .tile:active { transform: scale(.97); }
+  .tile-emoji { font-size: 3.2rem; line-height: 1; }
+  .tile-big { font-size: 2.6rem; font-weight: 900; color: var(--c2, #1a6fa8); line-height: 1.1; }
+  .tile-title { font-size: 1.35rem; font-weight: 900; color: var(--c2, #222); }
+  .tile-desc { font-size: 0.95rem; color: #888; line-height: 1.5; }
+  .tile-badge { font-size: 0.85rem; font-weight: 900; padding: 4px 12px; border-radius: 99px; background: var(--c3, #eef4fa); color: var(--c2, #1a6fa8); }
+  .units .tile { min-height: 170px; padding: 20px 14px; }
+  .unit-no { width: 48px; height: 48px; border-radius: 50%; background: var(--c2, #1a6fa8); color: #fff; font-size: 1.5rem; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+  /* 활동이 없는 단원: 회색 대신 연하게 */
+  .tile.is-empty { opacity: .45; box-shadow: none; cursor: default; }
+  .tile.is-empty .tile-badge { background: #f1f1f1; color: #999; }
+  @media (max-width: 700px) and (orientation: portrait) {
+    .grid.sem { grid-template-columns: 280px; }
+    .grid.units { grid-template-columns: repeat(2, 200px); }
+    .grid.acts { grid-template-columns: 240px; }
   }
-
-  .card {
-    background: #fff;
-    border-radius: 24px;
-    padding: 32px 28px;
-    width: 220px;
-    text-align: center;
-    text-decoration: none;
-    color: inherit;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.10);
-    border: 3px solid transparent;
-    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-  }
-  .card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 12px 32px rgba(0,0,0,0.15);
-  }
-
-  .card-pizza  { border-color: #f4a261; }
-  .card-animal { border-color: #6aabdf; }
-  .card-frog   { border-color: #7fb88a; }
-  .card-pizza:hover  { border-color: #e85d04; }
-  .card-animal:hover { border-color: #1a6fa8; }
-  .card-frog:hover   { border-color: #3a7d5c; }
-
-  .card-emoji { font-size: 3.5rem; line-height: 1; }
-
-  .card-title {
-    font-size: 1.15rem;
-    font-weight: 900;
-    color: #222;
-  }
-  .card-pizza  .card-title { color: #c35a00; }
-  .card-animal .card-title { color: #1a6fa8; }
-  .card-frog   .card-title { color: #3a7d5c; }
-
-  .card-desc {
-    font-size: 0.85rem;
-    color: #888;
-    line-height: 1.5;
-  }
-
-  .card-badge {
-    font-size: 0.75rem;
-    font-weight: 900;
-    padding: 4px 12px;
-    border-radius: 99px;
-    margin-top: 4px;
-  }
-  .card-pizza  .card-badge { background: #fff3e0; color: #c35a00; }
-  .card-animal .card-badge { background: #e8f4ff; color: #1a6fa8; }
-  .card-frog   .card-badge { background: #eef6ef; color: #3a7d5c; }
-
 </style>
 </head>
 <body>
-
-<h1>🧮 수학 탐험대</h1>
-<p class="subtitle">배우고 싶은 문제를 골라봐요!</p>
-
-<div class="card-list">
-
-  <a class="card card-pizza" href="3-2/05-fractions/fraction-pizza.html">
-    <div class="card-emoji">🍕</div>
-    <div class="card-title">분수 탐험</div>
-    <div class="card-desc">피자를 나눠 먹으며<br>분수를 배워요!</div>
-    <div class="card-badge">초3 · 분수</div>
-  </a>
-
-  <a class="card card-animal" href="3-2/01-multiplication/animal-legs.html">
-    <div class="card-emoji">🐷🦆</div>
-    <div class="card-title">다리가 몇 개?</div>
-    <div class="card-desc">돼지와 오리의 다리 수로<br>마리 수를 맞혀요!</div>
-    <div class="card-badge">초3 · 곱셈·나눗셈</div>
-  </a>
-
-  <a class="card card-frog" href="3-2/05-fractions/fraction-part-whole.html">
-    <div class="card-emoji">🐸</div>
-    <div class="card-title">개구리 묶음 분수</div>
-    <div class="card-desc">개구리를 묶어서<br>몇분의 몇인지 알아봐요!</div>
-    <div class="card-badge">초3 · 분수</div>
-  </a>
-
-</div>
+<div id="app"><div class="wrap" id="wrap"></div></div>
 
 <script>
-  // 큰 화면(가로 아이패드 13인치 등)에서는 제목과 카드를 키움. 스크롤 없이 한 화면에.
-  (function () {
-    const parts = Array.from(document.body.children).filter(e => e.tagName !== 'SCRIPT');
-    const list = document.querySelector('.card-list');
-    function fit() {
-      parts.forEach(e => { e.style.zoom = '1'; });
-      const top = parts[0].getBoundingClientRect().top;
-      const h = list.getBoundingClientRect().bottom - top + 100;
-      const w = list.offsetWidth + 60;
-      const z = Math.max(0.7, Math.min(1.5, innerHeight / h, innerWidth / w));
-      parts.forEach(e => { e.style.zoom = String(Math.floor(z * 100) / 100); });
+  // 학기 → 단원 → 활동. 주소 끝(#3-2, #3-2/5)으로 위치를 기억해서 뒤로 가기도 됨.
+  const COURSES = [
+    { id: '3-2', title: '3학년 2학기', emoji: '🐸', c: '#7fb88a', c2: '#3a7d5c', c3: '#eef6ef', units: [
+      { no: 1, name: '곱셈', emoji: '✖️', acts: [
+        { href: '3-2/01-multiplication/animal-legs.html', emoji: '🐷🦆', title: '다리가 몇 개?', desc: '돼지와 오리의 다리 수로<br>마리 수를 맞혀요!', c: '#6aabdf', c2: '#1a6fa8', c3: '#e8f4ff' }
+      ] },
+      { no: 2, name: '나눗셈', emoji: '➗', acts: [] },
+      { no: 3, name: '원', emoji: '⭕', acts: [] },
+      { no: 4, name: '들이와 무게', emoji: '⚖️', acts: [] },
+      { no: 5, name: '분수', emoji: '🍕', acts: [
+        { href: '3-2/05-fractions/fraction-pizza.html', emoji: '🍕', title: '분수 피자', desc: '피자를 나눠 먹으며<br>분수를 배워요!', c: '#f4a261', c2: '#c35a00', c3: '#fff3e0' },
+        { href: '3-2/05-fractions/fraction-part-whole.html', emoji: '🐸', title: '개구리 묶음 분수', desc: '개구리를 묶어서<br>몇분의 몇인지 알아봐요!', c: '#7fb88a', c2: '#3a7d5c', c3: '#eef6ef' }
+      ] },
+      { no: 6, name: '그림그래프', emoji: '📊', acts: [] }
+    ] },
+    { id: '4-1', title: '4학년 1학기', emoji: '🚀', c: '#9fb7e6', c2: '#2f5fb3', c3: '#eaf0fb', units: [
+      { no: 1, name: '각도', emoji: '📐', acts: [] },
+      { no: 2, name: '큰 수', emoji: '🔢', acts: [] },
+      { no: 3, name: '평면도형의 이동', emoji: '🔄', acts: [] },
+      { no: 4, name: '곱셈과 나눗셈', emoji: '🧮', acts: [] },
+      { no: 5, name: '규칙 찾기', emoji: '🔍', acts: [] },
+      { no: 6, name: '막대그래프', emoji: '📊', acts: [] }
+    ] }
+  ];
+
+  const wrap = document.getElementById('wrap');
+  const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+  const colors = (e, o) => { if (o.c) e.style.setProperty('--c', o.c); if (o.c2) e.style.setProperty('--c2', o.c2); if (o.c3) e.style.setProperty('--c3', o.c3); };
+
+  function header(title, sub, backTo) {
+    const bar = el('div', 'bar');
+    if (backTo != null) {
+      const b = el('button', 'back', '⬅️');
+      b.type = 'button'; b.setAttribute('aria-label', '뒤로');
+      b.addEventListener('click', () => { location.hash = backTo; });
+      bar.appendChild(b);
     }
-    addEventListener('resize', fit);
+    bar.appendChild(el('h1', '', title));
+    wrap.appendChild(bar);
+    wrap.appendChild(el('p', 'subtitle', sub));
+  }
+
+  function render() {
+    const [cid, uno] = location.hash.replace('#', '').split('/');
+    const course = COURSES.find(c => c.id === cid);
+    const unit = course && course.units.find(u => String(u.no) === uno && u.acts.length);
+    wrap.innerHTML = '';
+
+    if (!course) {
+      header('🧮 수학 탐험대', '몇 학년 몇 학기를 공부할까요?', null);
+      const g = el('div', 'grid sem');
+      COURSES.forEach(c => {
+        const t = el('a', 'tile');
+        t.href = '#' + c.id;
+        colors(t, c);
+        const n = c.units.reduce((s, u) => s + u.acts.length, 0);
+        t.innerHTML = `<div class="tile-emoji">${c.emoji}</div><div class="tile-big">${c.title}</div>` +
+          `<div class="tile-badge">${n ? '활동 ' + n + '개' : '준비 중'}</div>`;
+        g.appendChild(t);
+      });
+      wrap.appendChild(g);
+    } else if (!unit) {
+      header(course.title, '어떤 단원을 공부할까요?', '');
+      const g = el('div', 'grid units');
+      course.units.forEach(u => {
+        const has = u.acts.length > 0;
+        const t = el(has ? 'a' : 'div', 'tile' + (has ? '' : ' is-empty'));
+        colors(t, course);
+        if (has) t.href = `#${course.id}/${u.no}`;
+        t.innerHTML = `<div class="unit-no">${u.no}</div><div class="tile-title">${u.emoji} ${u.name}</div>` +
+          `<div class="tile-badge">${has ? '활동 ' + u.acts.length + '개' : '준비 중'}</div>`;
+        g.appendChild(t);
+      });
+      wrap.appendChild(g);
+    } else {
+      header(`${unit.no}. ${unit.name}`, `${course.title} · 배우고 싶은 문제를 골라봐요!`, '#' + course.id);
+      const g = el('div', 'grid acts');
+      g.style.setProperty('--n', Math.min(3, unit.acts.length));
+      unit.acts.forEach(a => {
+        const t = el('a', 'tile');
+        t.href = a.href;
+        colors(t, a);
+        t.innerHTML = `<div class="tile-emoji">${a.emoji}</div><div class="tile-title">${a.title}</div><div class="tile-desc">${a.desc}</div>`;
+        g.appendChild(t);
+      });
+      wrap.appendChild(g);
+    }
     fit();
-  })();
+  }
+
+  // 큰 화면(가로 아이패드 13인치 등)에서는 키우고, 작은 화면에서는 줄여서 스크롤 없이 한 화면에.
+  function fit() {
+    wrap.style.zoom = '1';
+    const r = wrap.getBoundingClientRect();
+    const z = Math.max(0.5, Math.min(1.6, (innerHeight - 48) / r.height, (innerWidth - 40) / r.width));
+    wrap.style.zoom = String(Math.floor(z * 100) / 100);
+  }
+
+  addEventListener('hashchange', render);
+  addEventListener('resize', fit);
+  render();
 </script>
 </body>
 </html>
