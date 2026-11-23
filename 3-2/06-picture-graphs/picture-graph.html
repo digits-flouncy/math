@@ -8,22 +8,22 @@
 <style>
   /* 그림그래프: [이름 | 그림] 표. 큰 그림·작은 그림은 크기로 구분 */
   .pg { width: 100%; background: #fff; border: 3px solid var(--line); border-radius: 18px; padding: 10px 10px 8px; }
-  .pg-title { text-align: center; font-size: 1.35rem; font-weight: 900; color: var(--accent); margin-bottom: 6px; }
+  .pg-title { text-align: center; font-size: 1.5rem; font-weight: 900; color: var(--accent); margin-bottom: 6px; }
   .pg-grid { display: grid; grid-template-columns: max-content minmax(0, 1fr); border: 2px solid #b9d4be; border-radius: 12px; overflow: hidden; }
   .pg-h { background: #e6f2e8; font-weight: 800; font-size: 1.15rem; padding: 6px 14px; text-align: center; white-space: nowrap; }
   .pg-h + .pg-h { border-left: 2px solid #b9d4be; }
   .pg-cat {
-    font-size: 1.3rem; font-weight: 800; padding: 0 10px; display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; font-weight: 800; padding: 0 10px; display: flex; align-items: center; justify-content: center;
     border-top: 2px solid var(--line); border-right: 2px solid #b9d4be; white-space: nowrap; transition: opacity .2s;
   }
   .pg-icons {
-    display: flex; align-items: center; flex-wrap: wrap; gap: 4px 5px; padding: 4px 10px; min-height: 54px;
+    display: flex; align-items: center; flex-wrap: wrap; gap: 4px 4px; padding: 6px 10px; min-height: 80px;
     border-top: 2px solid var(--line); transition: opacity .2s;
   }
   .ic { line-height: 1; display: inline-block; }
-  .ic-l { font-size: 30px; }
-  .ic-m { font-size: 23px; }
-  .ic-s { font-size: 16px; }
+  .ic-l { font-size: 32px; }
+  .ic-m { font-size: 26px; }
+  .ic-s { font-size: 21px; }
   /* 비대상 줄은 회색 대신 같은 색을 연하게 (이름은 연한 초록) */
   .pg-icons.is-dim { opacity: 0.4; }
   .pg-cat.is-dim { color: #9cc8a8; }
@@ -58,10 +58,19 @@
   .fs-label .ic-m { font-size: 26px; vertical-align: middle; }
   .fs-label .ic-s { font-size: 19px; vertical-align: middle; }
   /* 해석하기·읽기 풀이 박스: 줄을 촘촘하게, 모든 줄이 처음부터 보이게(all-on) */
-  .pg-steps .fs-box { display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+  /* 풀이 박스는 grid 대신 flex (아이패드 Safari에서 칸이 박스 밖으로 나가던 문제) */
+  .pg-steps.frac-steps { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px 14px; }
+  .pg-steps .fs-head, .pg-steps .fs-help { flex-basis: 100%; margin-bottom: 0; }
+  .pg-steps .fs-box { display: flex; flex-direction: column; justify-content: center; gap: 4px; width: max-content; }
+  .pg-steps .fs-row { width: max-content; min-width: 100%; }
+  .pg-steps .fs-label { flex: 1 0 auto; }
+  /* 최종 답이 문장일 때(…이 [ ]개 더 많아, 모두 [ ]개): 박스 아래 한 줄 */
+  .pg-steps .fs-frac.fs-below { flex-basis: 100%; }
+  .fs-below .fs-fin-col { flex-direction: row; gap: 8px; }
+  .fs-below .fs-unit { font-size: 1.4rem; font-weight: 800; }
   .pg-steps .fs-gap { display: none; }
   .pg-steps .fs-row { padding: 2px 6px; }
-  .pg-steps .fs-box .th-slot-sm { height: 48px; width: 60px; font-size: 1.55rem; }
+  .pg-steps .th-slot-sm { height: 54px; width: 66px; font-size: 1.7rem; }
   .pg-steps .fs-frac { align-self: center; }
   .pg-steps.all-on .fs-row, .pg-steps.all-on .fs-frac { opacity: 1; }
   .fs-fin-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
@@ -209,7 +218,7 @@
     });
     box.appendChild(qbox);
 
-    const fin = h('div', 'fs-frac fs-many');
+    const fin = h('div', 'fs-frac fs-many' + (spec.fin.pre ? ' fs-below' : ''));
     fin.style.gridRow = `2 / ${2 + gridN}`;
     let finSlot = null;
     if (spec.fin.kind === 'draw') {
