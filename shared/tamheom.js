@@ -607,6 +607,8 @@
     }
 
     function feedback(text, kind) {
+      // 활동이 메시지를 직접 보여 주고 싶으면(예: 잠깐 떴다 사라지는 안내) onFeedback 사용
+      if (cfg.onFeedback) { cfg.onFeedback(text, kind); return; }
       const fb = $('.th-feedback');
       fb.innerHTML = text;
       fb.className = 'th-feedback is-' + kind;
@@ -648,8 +650,19 @@
       session.index += 1;
       paintPads(true);
       // 확인 버튼 자리에 '다음' 버튼이 나옴 (버튼 위치가 바뀌지 않게)
-      app.querySelectorAll('.th-q .th-check').forEach(b => { b.style.display = 'none'; });
-      $('.th-next').classList.add('is-shown');
+      let inPad = false;
+      app.querySelectorAll('.th-q .th-check').forEach(b => {
+        if (b.classList.contains('th-key-check')) {
+          // 숫자 패드 안 확인 버튼은 그 자리에서 '다음 ▶'으로 바뀜
+          inPad = true;
+          const nb = b.cloneNode(false);
+          nb.textContent = '다음 ▶';
+          nb.classList.add('is-next');
+          nb.addEventListener('click', () => loadQuestion());
+          b.replaceWith(nb);
+        } else b.style.display = 'none';
+      });
+      if (!inPad) $('.th-next').classList.add('is-shown');
     }
 
     function onWrong(thisQ, msg) {
