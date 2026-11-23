@@ -28,7 +28,7 @@ src/                             옛 주소 → 새 주소로 자동 이동하�
 1. 단원 폴더(`<학년>-<학기>/<번호>-<주제>/`)에 HTML 파일 하나로 만듭니다. 새 단원이면 폴더를 새로 만듭니다.
 2. 경로는 항상 **상대 경로**로 씁니다. 활동 페이지에서 메인으로 가는 링크는 `../../index.html` 입니다.
    (`/`로 시작하는 절대 경로는 Pages 주소 `/math/` 아래에서 깨집니다.)
-3. 공통 틀을 씁니다: `<link rel="stylesheet" href="../../shared/tamheom.css">`, `<script src="../../shared/tamheom.js"></script>` 다음에 `Tamheom.activity({...})`. 기존 세 활동이 예시입니다.
+3. 공통 틀을 씁니다: `<link rel="stylesheet" href="../../shared/tamheom.css">`, `<script src="../../shared/tamheom.js"></script>` 다음에 `Tamheom.activity({...})`. 기존 세 활동이 예시입니다. `shared/` 파일을 고치면 활동 페이지의 `?v=` 숫자를 하나 올려 주세요. 아이패드가 예전 파일을 기억하지 않고 새 파일을 받습니다.
 4. `index.html`에 카드를 하나 추가합니다.
 5. 파일을 옮길 때는 옛 위치에 `src/` 안의 파일처럼 자동 이동 페이지를 남겨 둡니다.
 
