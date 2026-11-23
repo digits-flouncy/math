@@ -24,9 +24,9 @@
     position: absolute; transform: translate(-50%, -50%); line-height: 1; pointer-events: none;
     border-radius: 50%; transition: opacity .2s;
   }
-  .field .frog.dim { opacity: 0.35; filter: grayscale(1); }
+  .field .frog.dim { opacity: 0.5; filter: saturate(0.6) brightness(1.15); }
   .field .frog.sel { box-shadow: 0 0 0 4px #f0c35a; background: #fff3c9; }
-  .field .frog.in-group.dim { opacity: 0.45; }
+  .field .frog.in-group.dim { opacity: 0.55; }
   .hull { stroke-width: 5; stroke-linejoin: round; }
   .hull.part { stroke: var(--num); fill: var(--num-soft); }
   .hull.rest { stroke: var(--den); fill: var(--den-soft); }
@@ -69,15 +69,15 @@
   .step-row .th-frac-line { width: 64px; height: 4px; }
   .step-help { font-size: 1rem; color: var(--retry); }
   /* 분수 풀이: [①② 박스]  [문장 + 분수 칸] */
-  .steps.frac-steps { display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto auto auto; column-gap: 18px; align-items: center; justify-content: center; width: auto; max-width: none; }
-  .fs-head { grid-column: 2; grid-row: 1; white-space: nowrap; font-size: 1.25rem; font-weight: 800; text-align: center; line-height: 1.3; margin-bottom: 6px; }
+  .steps.frac-steps { display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto auto auto; column-gap: 12px; align-items: center; justify-content: center; width: auto; max-width: none; }
+  .fs-head { grid-column: 1 / -1; grid-row: 1; white-space: nowrap; font-size: 1.45rem; font-weight: 800; text-align: center; line-height: 1.3; margin-bottom: 6px; }
   .fs-box { grid-column: 1; grid-row: 2 / 5; display: grid; grid-template-rows: subgrid; border: 2px solid var(--line); border-radius: 16px; padding: 4px 6px; }
   .fs-row { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 12px; border: 2px solid transparent; opacity: 0.45; }
   .fs-row.is-now, .fs-frac.is-now { opacity: 1; }
   .fs-row.is-now { border-color: var(--accent); background: var(--accent-soft); }
   .fs-row.is-done, .fs-frac.is-done { opacity: 1; }
-  .fs-label { font-size: 1.08rem; font-weight: 800; white-space: nowrap; flex: 1; }
-  .fs-unit { font-size: 1.1rem; font-weight: 700; white-space: nowrap; }
+  .fs-label { font-size: 1.3rem; font-weight: 800; white-space: nowrap; flex: 1; }
+  .fs-unit { font-size: 1.25rem; font-weight: 700; white-space: nowrap; }
   .frac-steps .th-slot-sm { height: 54px; width: 54px; font-size: 1.7rem; }
   .fs-frac { grid-column: 2; grid-row: 2 / 5; display: grid; grid-template-rows: subgrid; justify-items: center; align-items: center; opacity: 0.45; padding: 4px 10px; border-radius: 14px; border: 2px solid transparent; }
   .fs-frac.is-now { border-color: var(--accent); background: var(--accent-soft); }
@@ -96,12 +96,11 @@
   .th-answer-col .th-next { width: 308px; }
   .th-answer-col .th-key-check { font-size: 1.5rem; }
 
-  .q-what { font-size: 2.1rem; margin: 14px 0 12px; }
-  /* 잠깐 떴다 사라지는 안내 (숫자 패드 바로 아래, 개구리를 가리지 않고 화면도 밀지 않음) */
-  .toast-spot { position: relative; height: 66px; width: 100%; flex: none; }
+  .q-what { font-size: 1.75rem; white-space: nowrap; margin: 14px 0 12px; }
+  /* 잠깐 떴다 사라지는 안내 (화면 아래 가운데, 개구리를 가리지 않고 화면도 밀지 않음) */
   .toast {
-    position: absolute; left: 50%; top: 10px; transform: translate(-50%, -8px); z-index: 5;
-    width: max-content; max-width: 420px; padding: 12px 26px; border-radius: 20px; font-size: 1.35rem; font-weight: 800; text-align: center;
+    position: fixed; left: 50%; bottom: 18px; transform: translate(-50%, 10px); z-index: 5;
+    width: max-content; max-width: 90vw; padding: 12px 26px; border-radius: 22px; font-size: 1.7rem; font-weight: 800; text-align: center;
     background: var(--accent); color: #fff; box-shadow: 0 6px 20px rgba(0,0,0,.18);
     opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s;
   }
@@ -109,7 +108,7 @@
   .toast.is-retry { background: #b8741f; }
   .toast small { display: block; font-size: 1rem; font-weight: 700; margin-top: 4px; }
   .th-answer-col .th-bottom-play { display: none; }
-  .th-play .th-cols { align-items: start; grid-template-columns: minmax(0, 1.4fr) minmax(440px, 1fr); }
+  .th-play .th-cols { align-items: start; grid-template-columns: minmax(0, 1.4fr) minmax(470px, 1fr); }
   .th-play .th-visual { justify-content: flex-start; }
   /* 안내 글이 나타나도 화면 크기가 바뀌지 않게(그리는 중에 개구리가 움직이지 않게) 자리를 미리 둠 */
   .intro-ex { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: center; }
@@ -568,7 +567,7 @@
         qbox.appendChild(mkRow(steps[1]));
         qbox.appendChild(h('div', 'fs-gap'));
         qbox.appendChild(mkRow(steps[0]));
-        stepsBox.appendChild(h('div', 'fs-head', `${NUM(josa(part, '은', '는'))} ${DEN(total)}의<br>몇분의 몇?`));
+        stepsBox.appendChild(h('div', 'fs-head', `${NUM(josa(part, '은', '는'))} ${DEN(total)}의 몇분의 몇?`));
         stepsBox.appendChild(qbox);
         const fr = h('div', 'fs-frac');
         fr.appendChild(fn.el); fr.appendChild(h('div', 'fs-line')); fr.appendChild(fd.el);
@@ -612,10 +611,7 @@
 
       const pad = T.keypad({ slots: [], onCheck: check, checkInPad: true });
       right.appendChild(pad.el);
-      const toastSpot = h('div', 'toast-spot');
-      toastEl = h('div', 'toast');
-      toastSpot.appendChild(toastEl);
-      right.appendChild(toastSpot);
+      if (!toastEl) { toastEl = h('div', 'toast'); document.body.appendChild(toastEl); }
 
       let mode = 'draw', cur = 0;
       function enterSteps() {
