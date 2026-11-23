@@ -68,6 +68,22 @@
   .step-row .th-frac { gap: 4px; }
   .step-row .th-frac-line { width: 64px; height: 4px; }
   .step-help { font-size: 1rem; color: var(--retry); }
+  /* 분수 모양 풀이 */
+  .steps.frac-steps { display: grid; grid-template-columns: max-content max-content max-content 22px max-content; column-gap: 6px; row-gap: 2px; align-items: center; width: auto; max-width: none; }
+  .fs-head { grid-column: 1 / -1; font-size: 1.4rem; font-weight: 800; margin: 0 0 4px 10px; }
+  .fs-row { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; padding: 6px 8px; border-radius: 14px; border: 2px solid transparent; opacity: 0.45; }
+  .fs-row.is-now { opacity: 1; border-color: var(--accent); background: var(--accent-soft); }
+  .fs-row.is-done { opacity: 1; }
+  .fs-label { font-size: 1.15rem; font-weight: 800; white-space: nowrap; }
+  .fs-unit { font-size: 1.1rem; font-weight: 700; }
+  .fs-arrow { font-size: 1.4rem; font-weight: 900; color: #c9d6cc; text-align: center; transition: color .3s; }
+  .fs-arrow.is-on { color: var(--accent); }
+  .frac-steps .th-slot-sm { height: 54px; width: 56px; font-size: 1.7rem; }
+  .fs-line { grid-column: 5; justify-self: start; width: 56px; height: 5px; border-radius: 3px; background: var(--ink); margin-left: 0; }
+  .fs-help { grid-column: 1 / -1; text-align: center; margin-top: 6px; }
+  .fs-pop { animation: fs-pop .45s ease-out; }
+  @keyframes fs-pop { 0% { transform: translateX(-30px) scale(.6); opacity: .2; } 70% { transform: scale(1.15); } 100% { transform: none; opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .fs-pop { animation: none; } }
   .step-help:empty { display: none; }
   .th-slot.num-s:not(.is-right):not(.is-wrong) { border-color: var(--num); }
   .th-slot.den-s:not(.is-right):not(.is-wrong) { border-color: var(--den); }
@@ -85,7 +101,7 @@
   .th-visual { position: relative; }
   .toast {
     position: absolute; left: 50%; bottom: 96px; transform: translate(-50%, 12px); z-index: 5;
-    max-width: 90%; padding: 12px 26px; border-radius: 20px; font-size: 1.35rem; font-weight: 800; text-align: center;
+    white-space: nowrap; padding: 12px 26px; border-radius: 20px; font-size: 1.35rem; font-weight: 800; text-align: center;
     background: var(--accent); color: #fff; box-shadow: 0 6px 20px rgba(0,0,0,.18);
     opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s;
   }
@@ -521,26 +537,41 @@
       const sm = (cls) => { const s = T.slot({ small: true, label: '숫자 칸' }); if (cls) s.el.classList.add(cls); return s; };
       let steps;
       if (p.t === 'what') {
+        // 분수 모양 풀이: ②(위) → 분자, ①(아래) → 분모. ①부터 풀면 숫자가 분수 칸으로 들어감
         const a = sm('den-s'), b = sm('num-s'), fn = sm('num-s'), fd = sm('den-s');
-        const fr = h('div', 'th-frac');
-        fr.appendChild(fn.el); fr.appendChild(h('div', 'th-frac-line')); fr.appendChild(fd.el);
+        fn.lock(); fd.lock();
         steps = [
-          { parts: [`① ${DEN('모두 몇 묶음?')}`, a, '묶음'], slots: [a],
+          { label: `① ${DEN('모두 몇 묶음?')}`, slot: a, target: fd, slots: [a],
             ok: () => a.number === p.d,
             why: () => a.number === total ? '개구리 수 말고 <b>묶음 수</b>를 세어 보자'
                     : a.number === p.s ? '한 묶음 안의 개구리 말고, 묶음이 <b>모두 몇 개</b>인지 세어 보자'
                     : a.number === p.n ? '색깔 묶음만 말고 <b>모든</b> 묶음을 세어 보자' : '',
             help: `파란 번호를 세어 봐요: 모두 ${p.d}묶음` },
-          { parts: [`② ${NUM(part + '마리는 몇 묶음?')}`, b, '묶음'], slots: [b],
+          { label: `② ${NUM(part + '마리는 몇 묶음?')}`, slot: b, target: fn, slots: [b],
             ok: () => b.number === p.n,
             why: () => b.number === part ? '마리 수 말고 <b>묶음 수</b>를 세어 보자'
                     : b.number === p.d ? '전체 말고 <b>색깔 개구리</b> 묶음만 세어 보자' : '',
-            help: `초록 묶음을 세어 봐요: ${p.n}묶음` },
-          { parts: [`③ ${NUM(josa(part, '은', '는'))} ${DEN(total)}의`, fr, ''], slots: [fd, fn], // 분모부터 쓰기
-            ok: () => fn.number === p.n && fd.number === p.d,
-            why: () => fracMistake(p, fn.number, fd.number),
-            help: `${DEN(p.d + '묶음')} 중 ${NUM(p.n + '묶음')} → ${colorFrac(p.n, p.d)}` }
+            help: `초록 묶음을 세어 봐요: ${p.n}묶음` }
         ];
+        stepsBox.classList.add('frac-steps');
+        stepsBox.appendChild(h('div', 'fs-head', `${NUM(josa(part, '은', '는'))} ${DEN(total)}의 몇분의 몇?`));
+        const mkRow = st => {
+          const row = h('div', 'fs-row');
+          row.appendChild(h('span', 'fs-label', st.label));
+          row.appendChild(st.slot.el);
+          row.appendChild(h('span', 'fs-unit', '묶음'));
+          st.arrow = h('span', 'fs-arrow', '→');
+          row.appendChild(st.arrow);
+          row.appendChild(st.target.el);
+          st.box = row; st.wrongs = 0;
+          return row;
+        };
+        stepsBox.appendChild(mkRow(steps[1]));
+        stepsBox.appendChild(h('div', 'fs-line'));
+        stepsBox.appendChild(mkRow(steps[0]));
+        const help = h('div', 'step-help fs-help');
+        stepsBox.appendChild(help);
+        steps.forEach(st => { st.helpEl = help; });
       } else {
         const a = sm(), b = sm('num-s'), c = sm();
         steps = [
@@ -558,8 +589,8 @@
             help: `${p.s}마리씩 ${p.n}묶음 → ${p.s} × ${p.n} = ${part}마리` }
         ];
       }
-      steps.forEach((st, i) => {
-        const tile = i < 2;
+      if (p.t !== 'what') steps.forEach((st, i) => {
+        const tile = false;
         const box = h('div', 'step' + (tile ? ' tile' : ''));
         const row = h('div', 'step-row');
         if (tile) box.appendChild(h('div', 'step-q', st.parts[0]));
@@ -650,6 +681,12 @@
         if (st.ok()) {
           st.slots.forEach(s => { s.mark('right'); s.lock(); });
           st.helpEl.textContent = '';
+          if (st.target) {
+            // 맞힌 수가 화살표를 따라 분수 칸으로 들어감
+            st.arrow.classList.add('is-on');
+            st.target.set(st.slot.value); st.target.mark('right');
+            st.target.el.classList.add('fs-pop');
+          }
           if (p.t === 'many' && cur === 1 && field) field.markPart(p.n);
           if (cur < steps.length - 1) {
             cur += 1;
