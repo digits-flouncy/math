@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>들이와 무게</title>
+<link rel="stylesheet" href="../../shared/tamheom.css?v=19" />
+<style>
+  .ms-q { font-size: 1.85rem; white-space: nowrap; text-align: center; margin: 6px 0 16px; }
+  .ms-pic { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+  .ms-note { font-size: 1.15rem; color: var(--ink-soft); text-align: center; }
+  .ms-fact { font-size: 1.35rem; font-weight: 800; background: #fff8e1; border: 3px solid #f0c35a; border-radius: 16px; padding: 6px 18px; }
+
+  /* 1000 묶음 그림: 큰 통 = 1 L(1 kg), 작은 컵 = 100 mL(100 g) */
+  .units-pic { display: flex; flex-wrap: wrap; gap: 10px 14px; justify-content: center; align-items: flex-end; max-width: 100%; }
+  .u-big, .u-small { display: inline-flex; flex-direction: column; align-items: center; font-weight: 800; color: var(--ink-soft); }
+  .u-big span:first-child { font-size: 3rem; line-height: 1; }
+  .u-small span:first-child { font-size: 1.7rem; line-height: 1; }
+  .u-big span:last-child, .u-small span:last-child { font-size: .85rem; }
+  .u-small.part { opacity: .8; }
+
+  /* 세로셈 */
+  .vcalc { display: grid; grid-template-columns: auto auto auto auto auto; column-gap: 10px; row-gap: 6px; font-size: 2.1rem; font-weight: 800; align-items: center; justify-items: end; }
+  .vcalc .op { justify-self: center; }
+  .vcalc .u { font-size: 1.3rem; justify-self: start; color: var(--ink-soft); }
+  .vcalc .line { grid-column: 1 / -1; height: 4px; background: var(--ink); justify-self: stretch; border-radius: 2px; }
+  .vcalc .qm { color: var(--accent); }
+
+  /* 오른쪽 답 칸: 한 칸 [ ] 단위 / 두 칸 (위 줄 · 아래 줄 높이) */
+  .fs-one { grid-template-rows: none; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .fs-pair { grid-template-columns: auto auto; column-gap: 6px; }
+  .fs-pair > .p-top { grid-column: 1; grid-row: 1; }
+  .fs-pair > .p-top-u { grid-column: 2; grid-row: 1; justify-self: start; }
+  .fs-pair > .p-bot { grid-column: 1; grid-row: 3; }
+  .fs-pair > .p-bot-u { grid-column: 2; grid-row: 3; justify-self: start; }
+  .frac-steps .w4.th-slot-sm { width: 82px; }
+  .frac-steps .fs-label { font-size: 1.12rem; }
+  .frac-steps { column-gap: 8px; }
+  .fs-one .th-slot-sm, .fs-pair .th-slot-sm { height: 60px; font-size: 1.9rem; }
+  .frac-steps.is-direct .fs-box { display: none; }
+  .frac-steps.is-direct > .fs-frac { grid-column: 1 / -1; justify-self: center; }
+
+  /* 알맞은 단위 고르기 */
+  .thing { font-size: 9rem; line-height: 1; text-align: center; }
+  .thing-name { font-size: 1.6rem; font-weight: 800; text-align: center; }
+  .unit-q { display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 3.2rem; font-weight: 900; }
+  .unit-box { min-width: 130px; height: 92px; border-radius: 16px; border: 4px dashed var(--accent); display: inline-flex; align-items: center; justify-content: center; color: var(--accent); background: #fff; padding: 0 10px; }
+  .u-btns { display: grid; gap: 14px; justify-content: center; }
+  .u-btn { height: 130px; min-width: 130px; border-radius: 22px; border: 3px solid var(--line); background: #fff; font-size: 2.6rem; font-weight: 900; color: var(--ink); cursor: pointer; }
+  .u-btn.is-picked { border-color: var(--accent); background: var(--accent-soft); }
+  .u-btn.is-right { border-color: #2e9d4f; background: #d9f2df; }
+  .u-btn.is-wrong { border-color: #b8741f; background: #fdf0e3; }
+  .u-side { display: flex; flex-direction: column; align-items: center; gap: 22px; padding-top: 30px; }
+  .u-side .th-check { width: 360px; height: 80px; font-size: 1.8rem; }
+  .u-help { font-size: 1.15rem; color: var(--retry); text-align: center; min-height: 1.5em; max-width: 430px; }
+
+  .th-play .th-cols { grid-template-columns: minmax(0, 1.2fr) minmax(470px, 1fr); }
+  .th-answer-col .th-bottom-play { display: none; }
+  .intro-ex { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: center; }
+  .intro-steps { padding-left: 1.2em; display: flex; flex-direction: column; gap: 8px; font-size: 1.15rem; }
+</style>
+</head>
+<body>
+<script src="../../shared/tamheom.js?v=19"></script>
+<script>
+(function () {
+  const T = Tamheom;
+  const { randInt, pick, h } = T;
+  const MODE = ({ convert: 'convert', calc: 'calc', unit: 'unit' })[new URLSearchParams(location.search).get('t')] || 'convert';
+  // 큰 단위·작은 단위 (1 큰 단위 = 1000 작은 단위)
+  const KINDS = {
+    cap: { big: 'L', small: 'mL', bigIcon: '🫙', smallIcon: '🥛', word: '들이' },
+    wt:  { big: 'kg', small: 'g', bigIcon: '🧱', smallIcon: '🍬', word: '무게' },
+    ton: { big: 't', small: 'kg', bigIcon: '🚚', smallIcon: '📦', word: '무게' }
+  };
+  const fmt = (a, b, k) => [a ? `${a} ${k.big}` : '', b ? `${b} ${k.small}` : ''].filter(Boolean).join(' ') || `0 ${k.small}`;
+  const josa = T.josa;
+  // 단위 뒤 조사: 리터·밀리리터는 받침 없음, 그램·킬로그램·톤은 받침 있음
+  const uj = (u, w, wo) => u + (['L', 'mL'].includes(u) ? wo : w);
+
+  /* ---------- 공통: 단계 풀이 흐름 (마지막 단계 = 최종 답) ---------- */
+  function runSteps(ctx, pad, steps, opts) {
+    const help = opts.help, stepsBox = opts.stepsBox;
+    let mode = opts.direct ? 'direct' : 'steps', cur = 0;
+    const last = steps[steps.length - 1];
+    steps.forEach(st => { st.wrongs = 0; });
+    function focus() {
+      steps.forEach((st, i) => { st.box.classList.toggle('is-now', i === cur); st.box.classList.toggle('is-done', i < cur); });
+      pad.setSlots(steps[cur].slots);
+    }
+    if (mode === 'steps') focus();
+    else { stepsBox.classList.add('is-direct'); last.box.classList.add('is-now'); pad.setSlots(last.slots); }
+    return function check() {
+      if (mode === 'direct') {
+        if (last.slots.some(s => s.value === '')) { ctx.say('빈칸에 숫자를 써 보자', 'info'); return; }
+        if (last.ok()) { last.slots.forEach(s => { s.mark('right'); s.lock(); }); ctx.correct(opts.praise); return; }
+        const why = last.why ? last.why() : '';
+        last.slots.forEach(s => s.mark('wrong'));
+        ctx.wrong((why ? why + (/[?!.]$/.test(why) ? ' ' : '. ') : '괜찮아, ') + '하나씩 같이 해 보자 🐸');
+        last.slots.forEach(s => s.clear());
+        mode = 'steps'; cur = 0;
+        stepsBox.classList.remove('is-direct'); last.box.classList.remove('is-now');
+        focus();
+        return;
+      }
+      const st = steps[cur];
+      if (st.slots.some(s => s.value === '')) { ctx.say('빈칸에 숫자를 써 보자', 'info'); return; }
+      if (st.ok()) {
+        st.slots.forEach(s => { s.mark('right'); s.lock(); });
+        help.innerHTML = '';
+        if (cur < steps.length - 1) { cur += 1; focus(); }
+        else { steps.forEach(x => { x.box.classList.remove('is-now'); x.box.classList.add('is-done'); }); ctx.correct(opts.praise); }
+        return;
+      }
+      const why = st.why ? st.why() : '';
+      st.slots.forEach(s => s.mark('wrong'));
+      st.wrongs += 1;
+      ctx.wrong(why || undefined);
+      if (st.wrongs >= 2) help.innerHTML = '도움: ' + st.help;
+      pad.setSlots(st.slots);
+    };
+  }
+  const sm = max => { const s = T.slot({ small: true, max: max || 2, label: '숫자 칸' }); if ((max || 2) >= 4) s.el.classList.add('w4'); else if (max === 3) s.el.classList.add('w4'); return s; };
+  // rows: 위에서부터 [{label, slot, unit, step}]
+  function stepsLayout(head, rows, finalEl) {
+    const stepsBox = h('div', 'frac-steps');
+    const qbox = h('div', 'fs-box');
+    rows.forEach((r, i) => {
+      const row = h('div', 'fs-row');
+      row.appendChild(h('span', 'fs-label', r.label));
+      row.appendChild(r.slot.el);
+      if (r.unit) row.appendChild(h('span', 'fs-unit', r.unit));
+      r.step.box = row;
+      if (i === 1) qbox.appendChild(h('div', 'fs-gap'));
+      qbox.appendChild(row);
+    });
+    stepsBox.appendChild(h('div', 'fs-head', head));
+    stepsBox.appendChild(qbox);
+    stepsBox.appendChild(finalEl);
+    const help = h('div', 'step-help fs-help');
+    stepsBox.appendChild(help);
+    return { stepsBox, help };
+  }
+  function oneFinal(max, unit) {
+    const s = sm(max), el = h('div', 'fs-frac fs-one');
+    el.appendChild(s.el); el.appendChild(h('span', 'fs-unit', unit));
+    return { el, s };
+  }
+  function pairFinal(maxTop, uTop, maxBot, uBot) {
+    const a = sm(maxTop), b = sm(maxBot), el = h('div', 'fs-frac fs-pair');
+    a.el.classList.add('p-top'); b.el.classList.add('p-bot');
+    el.appendChild(a.el); el.appendChild(h('span', 'fs-unit p-top-u', uTop));
+    el.appendChild(b.el); el.appendChild(h('span', 'fs-unit p-bot-u', uBot));
+    return { el, a, b };
+  }
+  // 큰 단위 a개 + 작은 단위 b 그림 (작은 그림 하나 = 100)
+  function unitsPic(k, a, b) {
+    const box = h('div', 'units-pic');
+    for (let i = 0; i < a; i++) box.appendChild(h('span', 'u-big', `<span>${k.bigIcon}</span><span>1 ${k.big}</span>`));
+    const hund = Math.floor(b / 100), rest = b % 100;
+    for (let i = 0; i < hund; i++) box.appendChild(h('span', 'u-small', `<span>${k.smallIcon}</span><span>100 ${k.small}</span>`));
+    if (rest) box.appendChild(h('span', 'u-small part', `<span>${k.smallIcon}</span><span>${rest} ${k.small}</span>`));
+    return box;
+  }
+  function cols(el) {
+    const c = h('div', 'th-cols'), left = h('div', 'th-visual'), right = h('div', 'th-answer-col');
+    c.appendChild(left); c.appendChild(right); el.appendChild(c);
+    return { left, right };
+  }
+
+  /* ================= 1) 단위 바꾸기 ================= */
+  function makeConvert(level) {
+    const kind = level === 3 ? pick(['cap', 'wt', 'ton']) : level === 2 ? pick(['cap', 'wt']) : pick(['cap', 'wt']);
+    const a = randInt(1, 9);
+    let b;
+    if (kind === 'ton') b = 0;
+    else if (level === 1) b = randInt(1, 9) * 100;
+    else b = pick([randInt(1, 9) * 100, randInt(1, 9) * 100 + randInt(1, 9) * 10, randInt(1, 9) * 10, randInt(1, 99) * 10]);
+    if (b >= 1000) b = 900;
+    const dir = pick(['toSmall', 'toBig']);
+    return { kind, a, b, dir };
+  }
+  function convertQuestion(el, ctx, p) {
+    const k = KINDS[p.kind], total = p.a * 1000 + p.b;
+    const { left, right } = cols(el);
+    const toSmall = p.dir === 'toSmall';
+    left.appendChild(h('div', 'th-question ms-q', toSmall
+      ? `${fmt(p.a, p.b, k).replace(/ (\S+)$/, (m0, u) => ' ' + uj(u, '은', '는'))} 몇 ${k.small}일까요?`
+      : p.kind === 'ton' ? `${total} ${uj(k.small, '은', '는')} 몇 ${k.big}일까요?` : `${total} ${uj(k.small, '은', '는')} 몇 ${k.big} 몇 ${k.small}일까요?`));
+    const pic = h('div', 'ms-pic');
+    pic.appendChild(h('div', 'ms-fact', `1 ${k.big} = 1000 ${k.small}`));
+    pic.appendChild(unitsPic(k, p.a, p.b));
+    if (p.b || p.kind !== 'ton') pic.appendChild(h('div', 'ms-note', p.kind === 'ton' ? `${k.bigIcon} 하나 = 1 ${k.big}` : `${k.bigIcon} 하나 = 1 ${k.big},  ${k.smallIcon} 하나 = 100 ${k.small}`));
+    left.appendChild(pic);
+
+    let steps, lay;
+    if (toSmall) {
+      const a = sm(4), f = oneFinal(4, k.small);
+      steps = [
+        { slots: [a], ok: () => a.number === p.a * 1000,
+          why: () => a.number === p.a ? `1 ${uj(k.big, '은', '는')} 1000 ${k.small}야. ${p.a} ${uj(k.big, '은', '는')}?` : '',
+          help: `1 ${k.big} = 1000 ${k.small} → ${p.a} ${k.big} = ${p.a * 1000} ${k.small}` },
+        { slots: [f.s], box: f.el, ok: () => f.s.number === total,
+          why: () => f.s.number === p.a * 1000 ? `${p.b} ${k.small}도 더해 보자` : f.s.number === p.a * 100 + p.b || f.s.number === p.a * 10 + p.b ? `1 ${uj(k.big, '은', '는')} 1000 ${k.small}야 (0이 3개)` : '',
+          help: `${p.a * 1000} + ${p.b} = ${total}` }
+      ];
+      if (!p.b) steps[1].help = `${p.a} ${k.big} = ${total} ${k.small}`;
+      lay = stepsLayout(`${fmt(p.a, p.b, k)} = 몇 ${k.small}?`, [
+        { label: `① ${p.a} ${uj(k.big, '은', '는')}`, slot: a, unit: k.small, step: steps[0] }
+      ], f.el);
+    } else if (p.kind === 'ton') {
+      const a = sm(1), f = oneFinal(2, k.big);
+      steps = [
+        { slots: [a], ok: () => a.number === p.a, why: () => '',
+          help: `1000 ${uj(k.small, '이', '가')} ${p.a}번 → ${p.a} ${k.big}` },
+        { slots: [f.s], box: f.el, ok: () => f.s.number === p.a, why: () => f.s.number === total ? `${k.big}로 바꿔 보자` : '', help: `${total} ${k.small} = ${p.a} ${k.big}` }
+      ];
+      lay = stepsLayout(`${total} ${k.small} = 몇 ${k.big}?`, [
+        { label: `① 1000 ${uj(k.small, '이', '가')} 몇 번?`, slot: a, unit: '번', step: steps[0] }
+      ], f.el);
+    } else {
+      const a = sm(1), b = sm(3), f = pairFinal(2, k.big, 3, k.small);
+      steps = [
+        { slots: [a], ok: () => a.number === p.a,
+          why: () => a.number === total ? `1000 ${uj(k.small, '이', '가')} <b>몇 번</b> 들어가는지 세어 보자` : '',
+          help: `${total} 안에 1000이 ${p.a}번` },
+        { slots: [b], ok: () => b.number === p.b,
+          why: () => b.number === total ? `1000씩 묶고 <b>남은</b> 것만이야` : '',
+          help: `${total} − ${p.a * 1000} = ${p.b}` },
+        { slots: [f.a, f.b], box: f.el, ok: () => f.a.number === p.a && f.b.number === p.b,
+          why: () => '', help: `${p.a} ${k.big} ${p.b} ${k.small}` }
+      ];
+      lay = stepsLayout(`${total} ${k.small} = 몇 ${k.big} 몇 ${k.small}?`, [
+        { label: `① 1000 ${uj(k.small, '이', '가')} 몇 번?`, slot: a, unit: '번', step: steps[0] },
+        { label: `② 남은 것은`, slot: b, unit: k.small, step: steps[1] }
+      ], f.el);
+      if (!p.b) { // 남은 것이 없으면 ② 빼고 바로 L만
+        steps[2].ok = () => f.a.number === p.a && (f.b.number === 0);
+      }
+    }
+    right.appendChild(lay.stepsBox);
+    const pad = T.keypad({ slots: [], onCheck: () => check(), checkInPad: true });
+    right.appendChild(pad.el);
+    const check = runSteps(ctx, pad, steps, { help: lay.help, stepsBox: lay.stepsBox, direct: ctx.level === 3, praise: '단위를 잘 바꿨어!' });
+  }
+
+  /* ================= 2) 들이와 무게의 덧셈·뺄셈 ================= */
+  function makeCalc(level) {
+    const kind = level === 1 ? 'cap' : pick(['cap', 'wt']);
+    const op = pick(['+', '−']);
+    const regroup = level >= 2 && Math.random() < (level === 2 ? 0.5 : 0.7);
+    let a1, b1, a2, b2;
+    for (let t = 0; t < 200; t++) {
+      a1 = randInt(1, 8); a2 = randInt(1, 8);
+      b1 = randInt(1, 9) * 100; b2 = randInt(1, 9) * 100;
+      if (op === '+') {
+        if (a1 + a2 + (b1 + b2 >= 1000 ? 1 : 0) > 9) continue;
+        if (regroup !== (b1 + b2 >= 1000)) continue;
+        if (b1 + b2 === 1000) continue;
+      } else {
+        if (a1 * 1000 + b1 <= a2 * 1000 + b2) continue;
+        if (regroup !== (b1 < b2)) continue;
+        if (a1 - a2 - (b1 < b2 ? 1 : 0) < 1) continue;
+      }
+      break;
+    }
+    return { kind, op, a1, b1, a2, b2 };
+  }
+  function calcQuestion(el, ctx, p) {
+    const k = KINDS[p.kind];
+    const v1 = p.a1 * 1000 + p.b1, v2 = p.a2 * 1000 + p.b2;
+    const res = p.op === '+' ? v1 + v2 : v1 - v2;
+    const ra = Math.floor(res / 1000), rb = res % 1000;
+    const up = p.op === '+' ? p.b1 + p.b2 >= 1000 : p.b1 < p.b2;   // 받아올림·받아내림
+    const smallRes = p.op === '+' ? p.b1 + p.b2 : (up ? p.b1 + 1000 - p.b2 : p.b1 - p.b2);
+    const bigRes = p.op === '+' ? p.a1 + p.a2 : (up ? p.a1 - 1 - p.a2 : p.a1 - p.a2);
+    const { left, right } = cols(el);
+    left.appendChild(h('div', 'th-question ms-q', `${fmt(p.a1, p.b1, k)} ${p.op} ${fmt(p.a2, p.b2, k)}`));
+    const pic = h('div', 'ms-pic');
+    const vc = h('div', 'vcalc');
+    const cell = (t, c) => vc.appendChild(h('span', c || '', String(t)));
+    cell(''); cell(p.a1); cell(k.big, 'u'); cell(p.b1); cell(k.small, 'u');
+    cell(p.op, 'op'); cell(p.a2); cell(k.big, 'u'); cell(p.b2); cell(k.small, 'u');
+    vc.appendChild(h('div', 'line'));
+    cell(''); cell('?', 'qm'); cell(k.big, 'u'); cell('?', 'qm'); cell(k.small, 'u');
+    pic.appendChild(vc);
+    pic.appendChild(h('div', 'ms-fact', `1 ${k.big} = 1000 ${k.small}`));
+    pic.appendChild(h('div', 'ms-note', p.op === '+' ? `${k.small}끼리, ${k.big}끼리 더해요` : `${k.small}끼리, ${k.big}끼리 빼요`));
+    left.appendChild(pic);
+
+    const s1 = sm(4), s2 = sm(2), f = pairFinal(2, k.big, 3, k.small);
+    const steps = [
+      { slots: [s1], ok: () => s1.number === smallRes,
+        why: () => (p.op === '−' && up && s1.number === p.b2 - p.b1) ? `거꾸로 빼면 안 돼. 1 ${uj(k.big, '을', '를')} 1000 ${k.small}로 바꿔 보자` : '',
+        help: p.op === '+' ? `${p.b1} + ${p.b2} = ${smallRes}` : (up ? `${p.b1}에서 ${josa(p.b2, '을', '를')} 뺄 수 없으니 1 ${k.big}(1000 ${k.small})${['L', 'mL'].includes(k.small) ? '를' : '을'} 빌려 와요: ${p.b1 + 1000} − ${p.b2} = ${smallRes}` : `${p.b1} − ${p.b2} = ${smallRes}`) },
+      { slots: [s2], ok: () => s2.number === bigRes,
+        why: () => (p.op === '−' && up && s2.number === p.a1 - p.a2) ? `1 ${uj(k.big, '을', '를')} 빌려 줬으니 ${josa(p.a1, '은', '는')} ${josa(p.a1 - 1, '이', '가')} 됐어` : '',
+        help: p.op === '+' ? `${p.a1} + ${p.a2} = ${bigRes}` : (up ? `빌려 줘서 ${p.a1 - 1} − ${p.a2} = ${bigRes}` : `${p.a1} − ${p.a2} = ${bigRes}`) },
+      { slots: [f.a, f.b], box: f.el, ok: () => f.a.number === ra && f.b.number === rb,
+        why: () => (p.op === '+' && up && f.b.number === smallRes) ? `${smallRes} ${uj(k.small, '은', '는')} 1000을 넘어. 1000 ${uj(k.small, '을', '를')} 1 ${k.big}로 올려 보자` : (p.op === '+' && up && f.a.number === bigRes) ? `올린 1 ${uj(k.big, '을', '를')} 더해 보자` : '',
+        help: up && p.op === '+' ? `${smallRes} ${k.small} = 1 ${k.big} ${rb} ${k.small} → ${bigRes} + 1 = ${ra} ${k.big}, ${rb} ${k.small}` : `${ra} ${k.big} ${rb} ${k.small}` }
+    ];
+    const verb = p.op === '+' ? '더하면' : '빼면';
+    const lay = stepsLayout(`모두 몇 ${k.big} 몇 ${k.small}?`.replace('모두 ', p.op === '+' ? '모두 ' : '남은 것은 '), [
+      { label: `② ${k.big}끼리 ${verb}`, slot: s2, unit: k.big, step: steps[1] },
+      { label: `① ${k.small}끼리 ${verb}`, slot: s1, unit: k.small, step: steps[0] }
+    ], f.el);
+    // 순서는 ① 작은 단위 → ② 큰 단위 → 답
+    right.appendChild(lay.stepsBox);
+    const pad = T.keypad({ slots: [], onCheck: () => check(), checkInPad: true });
+    right.appendChild(pad.el);
+    const check = runSteps(ctx, pad, steps, { help: lay.help, stepsBox: lay.stepsBox, direct: ctx.level === 3, praise: p.op === '+' ? '단위끼리 잘 더했어!' : '단위끼리 잘 뺐어!' });
+  }
+
+  /* ================= 3) 알맞은 단위 고르기 ================= */
+  const THINGS = {
+    cap: [
+      ['🪣', '양동이의 들이', 5, 'L'], ['💊', '물약 병의 들이', 12, 'mL'], ['🛁', '욕조의 들이', 200, 'L'],
+      ['🥤', '종이컵의 들이', 180, 'mL'], ['🧃', '주스 팩의 들이', 200, 'mL'], ['🫖', '주전자의 들이', 2, 'L'],
+      ['🥄', '숟가락의 들이', 15, 'mL'], ['🐟', '어항의 들이', 20, 'L'], ['🍼', '우유병의 들이', 250, 'mL'], ['🚰', '물통의 들이', 18, 'L']
+    ],
+    wt: [
+      ['🐱', '고양이의 무게', 4, 'kg'], ['🏀', '농구공의 무게', 650, 'g'], ['🚒', '소방차의 무게', 10, 't'],
+      ['🍎', '사과 한 개의 무게', 300, 'g'], ['🍉', '수박의 무게', 6, 'kg'], ['🐘', '코끼리의 무게', 5, 't'],
+      ['✏️', '연필의 무게', 6, 'g'], ['🎒', '책가방의 무게', 3, 'kg'], ['🚌', '버스의 무게', 12, 't'], ['🥚', '달걀 한 개의 무게', 60, 'g'], ['🐶', '강아지의 무게', 8, 'kg']
+    ]
+  };
+  function makeUnit(level) {
+    const kind = level === 1 ? 'cap' : level === 2 ? 'wt' : pick(['cap', 'wt']);
+    const i = randInt(0, THINGS[kind].length - 1);
+    return { kind, i };
+  }
+  function unitQuestion(el, ctx, p) {
+    const [icon, name, num, ans] = THINGS[p.kind][p.i];
+    const units = p.kind === 'cap' ? ['mL', 'L'] : ['g', 'kg', 't'];
+    const { left, right } = cols(el);
+    left.appendChild(h('div', 'th-question ms-q', '알맞은 단위를 골라 보세요'));
+    const pic = h('div', 'ms-pic');
+    pic.appendChild(h('div', 'thing', icon));
+    pic.appendChild(h('div', 'thing-name', name));
+    const q = h('div', 'unit-q');
+    const box = h('span', 'unit-box', '');
+    q.appendChild(h('span', '', String(num))); q.appendChild(box);
+    pic.appendChild(q);
+    left.appendChild(pic);
+
+    const side = h('div', 'u-side');
+    side.appendChild(h('div', 'fs-head', '어떤 단위가 알맞을까요?'));
+    const btns = h('div', 'u-btns');
+    btns.style.gridTemplateColumns = `repeat(${units.length}, 130px)`;
+    let chosen = null, done = false, wrongs = 0;
+    units.forEach(u => {
+      const b = h('button', 'u-btn', u); b.type = 'button';
+      b.addEventListener('click', () => {
+        if (done) return;
+        chosen = u; box.textContent = u;
+        btns.querySelectorAll('.u-btn').forEach(x => { x.classList.toggle('is-picked', x === b); x.classList.remove('is-wrong'); });
+      });
+      btns.appendChild(b);
+    });
+    side.appendChild(btns);
+    const help = h('div', 'u-help');
+    side.appendChild(help);
+    const ok = h('button', 'th-btn th-btn-primary th-check th-key-check', '확인'); ok.type = 'button';
+    side.appendChild(ok);
+    right.appendChild(side);
+    const hint = () => {
+      if (ans === 'mL') return `${num} L면 너무 많아요. 작은 그릇은 mL를 써요`;
+      if (ans === 'L') return `${num} mL는 아주 조금이에요. 큰 그릇은 L를 써요`;
+      if (ans === 'g') return `${num} kg은 아주 무거워요. 가벼운 물건은 g을 써요`;
+      if (ans === 'kg') return `${num} g은 아주 가벼워요. ${num} t은 자동차보다 무거워요`;
+      return `${num} kg은 강아지 정도예요. 자동차처럼 아주 무거운 것은 t을 써요`;
+    };
+    ok.addEventListener('click', () => {
+      if (done) return;
+      if (!chosen) { ctx.say('단위를 하나 골라 보자', 'info'); return; }
+      const b = Array.from(btns.children).find(x => x.textContent === chosen);
+      if (chosen === ans) { done = true; b.classList.remove('is-picked'); b.classList.add('is-right'); ctx.correct('알맞은 단위를 잘 골랐어!'); return; }
+      wrongs += 1;
+      b.classList.remove('is-picked'); b.classList.add('is-wrong');
+      const was = chosen;
+      chosen = null; box.textContent = '';
+      ctx.wrong(wrongs === 1 ? `${num} ${was}… 그만큼이면 어떨지 생각해 보자 🐸` : undefined);
+      help.innerHTML = '도움: ' + hint();
+    });
+  }
+
+  /* ---------- 설명 화면 ---------- */
+  function intro(el) {
+    const box = h('div', 'intro-ex');
+    const pic = h('div', 'ms-pic');
+    const text = h('div');
+    const k = KINDS.cap;
+    if (MODE === 'convert') {
+      pic.appendChild(h('div', 'ms-fact', '1 L = 1000 mL'));
+      pic.appendChild(unitsPic(k, 1, 400));
+      text.innerHTML = `<p class="th-question" style="text-align:left;font-size:1.35rem">1 L 400 mL = 1400 mL</p>
+        <ol class="intro-steps"><li>1 L = <b>1000 mL</b>, 1 kg = <b>1000 g</b>, 1 t = <b>1000 kg</b></li>
+        <li>1 L 400 mL → 1000 mL와 400 mL → <b>1400 mL</b></li>
+        <li>3200 mL → 1000 mL가 <b>3번</b>, 남은 것 <b>200 mL</b> → 3 L 200 mL</li></ol>`;
+    } else if (MODE === 'calc') {
+      const vc = h('div', 'vcalc');
+      ['', '2', 'L', '700', 'mL', '−', '1', 'L', '400', 'mL'].forEach((t, i) => vc.appendChild(h('span', ['L', 'mL'].includes(t) ? 'u' : (t === '−' ? 'op' : ''), t)));
+      vc.appendChild(h('div', 'line'));
+      ['', '1', 'L', '300', 'mL'].forEach(t => vc.appendChild(h('span', ['L', 'mL'].includes(t) ? 'u' : '', t)));
+      pic.appendChild(vc);
+      text.innerHTML = `<ol class="intro-steps"><li>① <b>mL끼리</b> 먼저: 700 − 400 = 300</li><li>② <b>L끼리</b>: 2 − 1 = 1</li>
+        <li>답: <b>1 L 300 mL</b></li><li>mL끼리 더해서 1000이 넘으면 1000 mL를 <b>1 L로 올려요</b></li>
+        <li>mL끼리 뺄 수 없으면 1 L를 <b>1000 mL로 빌려 와요</b></li></ol>`;
+    } else {
+      pic.appendChild(h('div', 'thing', '🪣'));
+      pic.appendChild(h('div', 'unit-q', '5 <span class="unit-box">L</span>'));
+      text.innerHTML = `<ol class="intro-steps"><li>작은 그릇은 <b>mL</b>, 큰 그릇은 <b>L</b></li>
+        <li>가벼운 물건은 <b>g</b>, 사람·동물은 <b>kg</b>, 자동차처럼 아주 무거운 것은 <b>t</b></li>
+        <li>단위 버튼을 고르고 확인!</li></ol>`;
+    }
+    box.appendChild(pic); box.appendChild(text);
+    el.appendChild(box);
+  }
+
+  const META = {
+    convert: { title: '단위 바꾸기', emoji: '🔁', sub: 'L와 mL, kg과 g, t과 kg을 바꿔요', id: 'measure-convert',
+      levels: [
+        { name: '100 단위', desc: '1 L 400 mL ↔ 1400 mL 처럼 100 단위. 차근차근.' },
+        { name: '10 단위까지', desc: '1020 g 처럼 10 단위까지. 차근차근.' },
+        { name: '바로 답 쓰기', desc: 't과 kg까지. 답만 써요. 틀리면 풀이 칸이 나와요.' }
+      ] },
+    calc: { title: '들이와 무게 계산', emoji: '➕', sub: '들이와 무게를 더하고 빼요', id: 'measure-calc',
+      levels: [
+        { name: '들이 덧셈·뺄셈', desc: 'L와 mL. 받아올림·받아내림 없이. 차근차근.' },
+        { name: '들이·무게, 올리고 빌리기', desc: 'mL끼리 1000을 넘거나 뺄 수 없는 문제도 나와요.' },
+        { name: '바로 답 쓰기', desc: '답만 써요. 틀리면 풀이 칸이 나와요.' }
+      ] },
+    unit: { title: '알맞은 단위', emoji: '⚖️', sub: '물건에 알맞은 들이·무게 단위를 골라요', id: 'measure-unit',
+      levels: [
+        { name: '들이: mL와 L', desc: '그릇에 알맞은 들이 단위를 골라요.' },
+        { name: '무게: g, kg, t', desc: '물건에 알맞은 무게 단위를 골라요.' },
+        { name: '섞어서', desc: '들이와 무게가 섞여 나와요.' }
+      ] }
+  }[MODE];
+
+  document.title = META.title;
+  T.activity({
+    id: META.id,
+    title: META.title,
+    emoji: META.emoji,
+    accent: '#2f6f9f',
+    accentSoft: '#e7f1fa',
+    oneLineTop: true,
+    toast: true,
+    subtitle: META.sub,
+    levels: META.levels,
+    intro,
+    question(el, ctx) {
+      const make = { convert: makeConvert, calc: makeCalc, unit: makeUnit }[MODE];
+      const p = ctx.review || make(ctx.level);
+      ctx.setData(p);
+      window.__ms = p;
+      if (MODE === 'convert') convertQuestion(el, ctx, p);
+      else if (MODE === 'calc') calcQuestion(el, ctx, p);
+      else unitQuestion(el, ctx, p);
+    }
+  });
+})();
+</script>
+</body>
+</html>
