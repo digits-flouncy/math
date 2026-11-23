@@ -34,19 +34,26 @@
   .badge circle { fill: var(--den); }
   .badge text { fill: #fff; font-weight: 900; font-size: 30px; text-anchor: middle; dominant-baseline: central; }
 
-  .draw-bar { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
-  .draw-tip { font-size: 1.1rem; color: var(--ink-soft); }
+  /* 그림 아래: 묶기 안내 한 줄 + 버튼 한 줄 (높이 고정이라 화면이 흔들리지 않음) */
+  .draw-bar { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 8px; }
+  .draw-tip { font-size: 1.2rem; font-weight: 700; color: var(--ink-soft); min-height: 1.6em; padding: 2px 14px; border-radius: 12px; }
   .draw-tip b { color: var(--accent); }
+  .draw-tip.is-retry { color: var(--retry); background: var(--retry-soft); }
+  .draw-tip.is-info { color: var(--accent); background: var(--accent-soft); }
+  .draw-btns { display: flex; align-items: center; gap: 10px; }
+  .draw-btns.is-off { visibility: hidden; }
   .draw-bar .th-btn { padding: 6px 14px; font-size: 1rem; min-height: 0; }
   .draw-count { font-weight: 800; color: var(--den); font-size: 1.1rem; }
 
   /* 풀이 단계 (오른쪽) */
-  .steps { display: flex; flex-direction: column; gap: 6px; width: 100%; max-width: 360px; }
+  .steps { display: flex; flex-direction: column; gap: 6px; width: 100%; max-width: 340px; }
   .steps[hidden] { display: none; }
-  .step { border: 2px solid var(--line); border-radius: 14px; padding: 4px 10px; opacity: 0.45; }
+  .step { border: 2px solid var(--line); border-radius: 14px; padding: 6px 12px; opacity: 0.45; }
   .step.is-now { opacity: 1; border-color: var(--accent); background: var(--accent-soft); }
   .step.is-done { opacity: 1; }
-  .step-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-weight: 800; font-size: 1.15rem; }
+  /* 글 | 칸 | 단위 — 세 줄의 칸이 같은 자리에 오게 */
+  .step-row { display: grid; grid-template-columns: 1fr 64px 2.6em; align-items: center; gap: 8px; font-weight: 800; font-size: 1.15rem; }
+  .step-row > :nth-child(2) { justify-self: center; }
   .step-row .th-slot-sm { height: 48px; width: 58px; font-size: 1.5rem; }
   .step-row .th-frac { gap: 4px; }
   .step-row .th-frac-line { width: 64px; height: 4px; }
@@ -56,8 +63,13 @@
   .th-slot.den-s:not(.is-right):not(.is-wrong) { border-color: var(--den); }
   .direct { display: flex; align-items: center; gap: 10px; }
   .direct[hidden] { display: none; }
-  .wait-note { font-size: 1.1rem; color: var(--ink-soft); text-align: center; }
-  .wait-note[hidden] { display: none; }
+  .direct.is-waiting { opacity: 0.45; pointer-events: none; }
+  .steps.is-waiting { pointer-events: none; }
+  /* 숫자 패드 크게 */
+  .th-answer-col .th-keypad { grid-template-columns: repeat(3, 96px); gap: 10px; }
+  .th-answer-col .th-key { height: 72px; font-size: 2.1rem; border-radius: 16px; }
+  .th-answer-col .th-key-fn { font-size: 1.3rem; }
+  .th-answer-col .th-check, .th-answer-col .th-next { width: 308px; }
 
   .q-what { font-size: 1.7rem; margin-bottom: 8px; }
   /* 안내 글이 나타나도 화면 크기가 바뀌지 않게(그리는 중에 개구리가 움직이지 않게) 자리를 미리 둠 */
@@ -404,27 +416,33 @@
       left.appendChild(picWrap);
       let field = null;
       const bar = h('div', 'draw-bar');
-      const tip = h('span', 'draw-tip');
+      const tip = h('div', 'draw-tip');
+      const btns = h('div', 'draw-btns');
       const cnt = h('span', 'draw-count');
       const undoBtn = h('button', 'th-btn', '↩ 하나 취소');
       const resetBtn = h('button', 'th-btn', '다시 묶기');
       undoBtn.type = resetBtn.type = 'button';
-      bar.appendChild(tip); bar.appendChild(cnt); bar.appendChild(undoBtn); bar.appendChild(resetBtn);
+      btns.appendChild(cnt); btns.appendChild(undoBtn); btns.appendChild(resetBtn);
+      bar.appendChild(tip); bar.appendChild(btns);
+      let startTip = '';
+      // 묶기 안내는 그림 바로 아래에 (아이가 보고 있는 곳)
+      function drawSay(t, kind) { tip.innerHTML = t; tip.className = 'draw-tip' + (kind ? ' is-' + kind : ''); }
 
       function showField(interactive) {
         picWrap.innerHTML = '';
         field = makeField(p, {
           draw: interactive,
-          say: (t, k) => ctx.say(t, k),
+          say: drawSay,
           surface: left,
           onChange: n => { cnt.textContent = n ? `${n}묶음` : ''; },
           onGroupsDone: grouped
         });
         picWrap.appendChild(field.el);
         if (interactive) {
-          tip.innerHTML = p.t === 'what'
+          startTip = p.t === 'what'
             ? `✏️ <b>${p.s}마리씩</b> 동그라미를 그려 묶어요`
             : `✏️ 똑같이 <b>${p.d}묶음</b>이 되게 묶어요`;
+          drawSay(startTip);
           cnt.textContent = '';
           left.appendChild(bar);
         } else {
@@ -432,12 +450,10 @@
           bar.remove();
         }
       }
-      undoBtn.addEventListener('click', () => field && field.undo());
-      resetBtn.addEventListener('click', () => field && field.reset());
+      undoBtn.addEventListener('click', () => { if (field) { field.undo(); drawSay(startTip); } });
+      resetBtn.addEventListener('click', () => { if (field) { field.reset(); drawSay(startTip); } });
 
       /* ---------- 오른쪽: 단계 / 바로 답 ---------- */
-      const wait = h('div', 'wait-note', '먼저 개구리를 묶어 봐요 🐸');
-      right.appendChild(wait);
       const stepsBox = h('div', 'steps');
       right.appendChild(stepsBox);
       const direct = h('div', 'direct');
@@ -474,7 +490,7 @@
             why: () => b.number === part ? '마리 수 말고 <b>묶음 수</b>를 세어 보자'
                     : b.number === p.d ? '전체 말고 <b>색깔 개구리</b> 묶음만 세어 보자' : '',
             help: `초록 묶음을 세어 봐요: ${p.n}묶음` },
-          { parts: [`③ ${NUM(josa(part, '은', '는'))} ${DEN(total)}의`, fr], slots: [fn, fd],
+          { parts: [`③ ${NUM(josa(part, '은', '는'))} ${DEN(total)}의`, fr, ''], slots: [fn, fd],
             ok: () => fn.number === p.n && fd.number === p.d,
             why: () => fracMistake(p, fn.number, fd.number),
             help: `${DEN(p.d + '묶음')} 중 ${NUM(p.n + '묶음')} → ${colorFrac(p.n, p.d)}` }
@@ -516,7 +532,7 @@
       let mode = 'draw', cur = 0;
       function enterSteps() {
         mode = 'steps';
-        wait.hidden = true; direct.hidden = true; stepsBox.hidden = false;
+        direct.hidden = true; stepsBox.hidden = false; stepsBox.classList.remove('is-waiting');
         focusStep();
       }
       function focusStep() {
@@ -525,12 +541,12 @@
       }
       function enterDirect() {
         mode = 'direct';
-        wait.hidden = true; stepsBox.hidden = true; direct.hidden = false;
+        stepsBox.hidden = true; direct.hidden = false; direct.classList.remove('is-waiting');
         pad.setSlots(directSlots);
       }
       function grouped() {
-        ctx.say('다 묶었어! 이제 세어 보자 🐸', 'info');
-        bar.remove();
+        drawSay('다 묶었어! 이제 세어 보자 🐸', 'info');
+        btns.classList.add('is-off');
         if (ctx.level === 1) enterSteps(); else enterDirect();
       }
 
@@ -539,7 +555,9 @@
         enterDirect();
       } else if (draw) {
         showField(true);
-        stepsBox.hidden = ctx.level !== 1; direct.hidden = true;
+        // 묶는 동안 오른쪽은 흐리게 미리 보여 줌 (자리 고정)
+        if (ctx.level === 1) { direct.hidden = true; stepsBox.classList.add('is-waiting'); }
+        else { stepsBox.hidden = true; direct.classList.add('is-waiting'); }
       } else {
         showField(false);
         if (ctx.level === 1) enterSteps(); else enterDirect();
