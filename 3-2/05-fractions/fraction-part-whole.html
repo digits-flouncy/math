@@ -4,11 +4,8 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>개구리 묶음 분수</title>
-<link rel="stylesheet" href="../../shared/tamheom.css?v=14" />
+<link rel="stylesheet" href="../../shared/tamheom.css?v=15" />
 <style>
-  :root { --num: #2e9d4f; --num-soft: #d9f2df; --den: #2f6fc9; --den-soft: #dde9fa; }
-  .num-c { color: var(--num); }
-  .den-c { color: var(--den); }
 
   /* 개구리 밭: 펜슬·손가락으로 동그라미를 그려 묶는 곳 */
   .field {
@@ -48,7 +45,6 @@
 
   /* 풀이 단계 (오른쪽) */
   /* ①·②는 나란히 정사각형 타일, ③은 아래 한 줄 */
-  .steps { display: grid; grid-template-columns: auto auto; justify-content: center; gap: 8px; width: 100%; max-width: 460px; }
   .steps > .step:not(.tile) { grid-column: 1 / -1; }
   .step.tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; padding: 8px 6px; min-width: 0; }
   .step.tile .step-q { font-weight: 800; font-size: 1.3rem; line-height: 1.35; white-space: nowrap; }
@@ -68,33 +64,10 @@
   .step-row .th-frac { gap: 4px; }
   .step-row .th-frac-line { width: 64px; height: 4px; }
   .step-help { font-size: 1rem; color: var(--retry); }
-  /* 분수 풀이: [①② 박스]  [문장 + 분수 칸] */
-  .steps.frac-steps { display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto auto auto; column-gap: 12px; align-items: center; justify-content: center; width: auto; max-width: none; }
-  .fs-head { grid-column: 1 / -1; grid-row: 1; white-space: nowrap; font-size: 1.45rem; font-weight: 800; text-align: center; line-height: 1.3; margin-bottom: 6px; }
-  .fs-box { grid-column: 1; grid-row: 2 / 5; display: grid; grid-template-rows: subgrid; border: 2px solid var(--line); border-radius: 16px; padding: 4px 6px; }
-  .fs-row { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 12px; border: 2px solid transparent; opacity: 0.45; }
-  .fs-row.is-now, .fs-frac.is-now { opacity: 1; }
-  .fs-row.is-now { border-color: var(--accent); background: var(--accent-soft); }
-  .fs-row.is-done, .fs-frac.is-done { opacity: 1; }
-  .fs-label { font-size: 1.3rem; font-weight: 800; white-space: nowrap; flex: 1; }
-  .fs-unit { font-size: 1.25rem; font-weight: 700; white-space: nowrap; }
-  .frac-steps .th-slot-sm { height: 54px; width: 54px; font-size: 1.7rem; }
-  .fs-frac { grid-column: 2; grid-row: 2 / 5; display: grid; grid-template-rows: subgrid; justify-items: center; align-items: center; opacity: 0.45; padding: 4px 10px; border-radius: 14px; border: 2px solid transparent; }
-  .fs-frac.is-now { border-color: var(--accent); background: var(--accent-soft); }
-  .fs-line { width: 70px; height: 5px; border-radius: 3px; background: var(--ink); }
-  .fs-help { grid-column: 1 / -1; grid-row: 5; text-align: center; margin-top: 6px; }
-  .th-play .th-answer-col { align-self: stretch; justify-content: center; }
   .step-help:empty { display: none; }
-  .th-slot.num-s:not(.is-right):not(.is-wrong) { border-color: var(--num); }
-  .th-slot.den-s:not(.is-right):not(.is-wrong) { border-color: var(--den); }
   .direct { display: flex; align-items: center; gap: 10px; }
   .direct[hidden] { display: none; }
-  /* 숫자 패드 크게 */
-  .th-answer-col .th-keypad { grid-template-columns: repeat(3, 96px); gap: 10px; }
-  .th-answer-col .th-key { height: 72px; font-size: 2.1rem; border-radius: 16px; }
-  .th-answer-col .th-key-fn { font-size: 1.3rem; }
   .th-answer-col .th-next { width: 308px; }
-  .th-answer-col .th-key-check { font-size: 1.5rem; }
 
   .q-what { font-size: 1.75rem; white-space: nowrap; margin: 14px 0 12px; }
   .th-answer-col .th-bottom-play { display: none; }
@@ -108,7 +81,7 @@
 </style>
 </head>
 <body>
-<script src="../../shared/tamheom.js?v=14"></script>
+<script src="../../shared/tamheom.js?v=15"></script>
 <script>
 (function () {
   const T = Tamheom;
@@ -560,37 +533,46 @@
         stepsBox.appendChild(help);
         steps.forEach(st => { st.helpEl = help; });
       } else {
+        // 풀이: [①② 박스]  옆에 최종 답 칸(몇 마리?). 위에 'M의 n/d은 얼마?' 한 줄.
         const a = sm(), b = sm('num-s'), c = sm();
         steps = [
-          { parts: ['① 한 묶음은 몇 마리?', a, '마리'], slots: [a],
+          { label: '① 한 묶음은?', unit: '마리', slot: a, slots: [a],
             ok: () => a.number === p.s,
             why: () => a.number === p.d ? '그건 묶음 수야. 한 묶음 안에 개구리가 <b>몇 마리</b>인지 세어 보자' : '',
             help: `${total}마리를 ${p.d}묶음으로 똑같이 나누면 한 묶음에 ${p.s}마리` },
-          { parts: [`② ${fracJosa(p.n, p.d, '은', '는')} 몇 묶음?`, b, '묶음'], slots: [b],
+          { label: `② ${fracJosa(p.n, p.d, '은', '는')} 몇 묶음?`, unit: '묶음', slot: b, slots: [b],
             ok: () => b.number === p.n,
             why: () => b.number === p.d ? `아래 수 ${p.d}는 전체 묶음 수야. <b>위의 수</b>만큼 묶음을 세어 보자` : '',
             help: `${p.d}묶음 중 ${p.n}묶음 → ${p.n}묶음` },
-          { parts: [`③ ${p.n}묶음은 몇 마리?`, c, '마리'], slots: [c],
+          { slots: [c],
             ok: () => c.number === part,
             why: () => manyMistake(p, c.number),
             help: `${p.s}마리씩 ${p.n}묶음 → ${p.s} × ${p.n} = ${part}마리` }
         ];
-      }
-      if (p.t !== 'what') steps.forEach((st, i) => {
-        const tile = false;
-        const box = h('div', 'step' + (tile ? ' tile' : ''));
-        const row = h('div', 'step-row');
-        if (tile) box.appendChild(h('div', 'step-q', st.parts[0]));
-        (tile ? st.parts.slice(1) : st.parts).forEach(x => {
-          if (typeof x === 'string') row.appendChild(h('span', '', x));
-          else row.appendChild(x.el || x);
+        stepsBox.classList.add('frac-steps');
+        const qbox = h('div', 'fs-box');
+        steps.slice(0, 2).forEach((st, i) => {
+          const row = h('div', 'fs-row');
+          row.appendChild(h('span', 'fs-label', st.label));
+          row.appendChild(st.slot.el);
+          row.appendChild(h('span', 'fs-unit', st.unit));
+          st.box = row;
+          if (i === 1) qbox.appendChild(h('div', 'fs-gap'));
+          qbox.appendChild(row);
         });
-        box.appendChild(row);
-        st.helpEl = h('div', 'step-help');
-        box.appendChild(st.helpEl);
-        st.box = box; st.wrongs = 0;
-        stepsBox.appendChild(box);
-      });
+        stepsBox.appendChild(h('div', 'fs-head', `${total}의 ${fracJosa(p.n, p.d, '은', '는')} 얼마?`));
+        stepsBox.appendChild(qbox);
+        const fin = h('div', 'fs-frac fs-many');
+        const finRow = h('div', 'fs-many-row');
+        finRow.appendChild(c.el);
+        finRow.appendChild(h('span', 'fs-unit', '마리'));
+        fin.appendChild(finRow);
+        stepsBox.appendChild(fin);
+        steps[2].box = fin;
+        const help = h('div', 'step-help fs-help');
+        stepsBox.appendChild(help);
+        steps.forEach(st => { st.helpEl = help; st.wrongs = 0; });
+      }
 
       const pad = T.keypad({ slots: [], onCheck: check, checkInPad: true });
       right.appendChild(pad.el);
