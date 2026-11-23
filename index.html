@@ -94,6 +94,7 @@
   .card-pizza  .card-badge { background: #fff3e0; color: #c35a00; }
   .card-animal .card-badge { background: #e8f4ff; color: #1a6fa8; }
   .card-frog   .card-badge { background: #eef6ef; color: #3a7d5c; }
+
 </style>
 </head>
 <body>
@@ -126,5 +127,22 @@
 
 </div>
 
+<script>
+  // 큰 화면(가로 아이패드 13인치 등)에서는 제목과 카드를 키움. 스크롤 없이 한 화면에.
+  (function () {
+    const parts = Array.from(document.body.children).filter(e => e.tagName !== 'SCRIPT');
+    const list = document.querySelector('.card-list');
+    function fit() {
+      parts.forEach(e => { e.style.zoom = '1'; });
+      const top = parts[0].getBoundingClientRect().top;
+      const h = list.getBoundingClientRect().bottom - top + 100;
+      const w = list.offsetWidth + 60;
+      const z = Math.max(0.7, Math.min(1.5, innerHeight / h, innerWidth / w));
+      parts.forEach(e => { e.style.zoom = String(Math.floor(z * 100) / 100); });
+    }
+    addEventListener('resize', fit);
+    fit();
+  })();
+</script>
 </body>
 </html>
