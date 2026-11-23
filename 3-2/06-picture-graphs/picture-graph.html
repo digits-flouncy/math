@@ -57,6 +57,13 @@
   .fs-label .ic-l { font-size: 34px; vertical-align: middle; }
   .fs-label .ic-m { font-size: 26px; vertical-align: middle; }
   .fs-label .ic-s { font-size: 19px; vertical-align: middle; }
+  /* 해석하기·읽기 풀이 박스: 줄을 촘촘하게, 모든 줄이 처음부터 보이게(all-on) */
+  .pg-steps .fs-box { display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+  .pg-steps .fs-gap { display: none; }
+  .pg-steps .fs-row { padding: 2px 6px; }
+  .pg-steps .fs-box .th-slot-sm { height: 48px; width: 60px; font-size: 1.55rem; }
+  .pg-steps .fs-frac { align-self: center; }
+  .pg-steps.all-on .fs-row, .pg-steps.all-on .fs-frac { opacity: 1; }
   .fs-fin-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
   .fs-draw { font-size: 1.3rem; font-weight: 800; text-align: center; line-height: 1.4; }
   .pg-direct { display: flex; align-items: center; justify-content: center; gap: 10px; }
@@ -118,11 +125,11 @@
   function genVals(n, level, sc) {
     for (let t = 0; t < 200; t++) {
       let vals;
+      // 수 범위는 교과서 수준: 10·1 그림은 한 줄 5~45 (합계 120 안쪽), 100·10 그림은 100~390
       if (sc === 's1') {
-        const maxT = level === 1 ? 3 : 5;
-        vals = Array.from({ length: n }, () => randInt(1, maxT) * 10 + (level === 1 ? randInt(1, 9) : randInt(0, 9)));
+        vals = Array.from({ length: n }, () => (level === 1 ? randInt(1, 3) * 10 + randInt(1, 9) : randInt(5, 45)));
       } else {
-        vals = Array.from({ length: n }, () => randInt(1, 4) * 100 + randInt(0, 9) * 10);
+        vals = Array.from({ length: n }, () => randInt(10, 39) * 10);
       }
       if (new Set(vals).size === n) return vals;
     }
@@ -163,12 +170,14 @@
       el, rows,
       setCounts,
       // 지금 보는 줄만 진하게, 나머지는 연하게 (null이면 모두 진하게)
-      focus(list) {
+      // now: 노랗게 표시할 줄 (주지 않으면 진한 줄이 하나일 때 그 줄)
+      focus(list, nowList) {
         const on = list == null ? null : [].concat(list);
+        const nw = nowList === undefined ? (on && on.length === 1 ? on : null) : (nowList == null ? null : [].concat(nowList));
         rows.forEach((r, i) => {
           const dim = on != null && !on.includes(i);
           r.cat.classList.toggle('is-dim', dim); r.icons.classList.toggle('is-dim', dim);
-          const now = on != null && on.includes(i) && on.length === 1;
+          const now = nw != null && nw.length === 1 && nw.includes(i);
           r.cat.classList.toggle('is-now', now); r.icons.classList.toggle('is-now', now);
         });
       }
@@ -180,7 +189,7 @@
    *         fin: { kind: 'num'|'draw', unit, ans, max, why(v), help, check(), row },
    *         direct: 바로 답하기로 시작, focus(rowList|null), onRight(msg) } */
   function solver(right, ctx, spec) {
-    const box = h('div', 'frac-steps pg-steps');
+    const box = h('div', 'frac-steps pg-steps' + (spec.allOn ? ' all-on' : ''));
     box.appendChild(h('div', 'fs-head', spec.head));
     const nRows = spec.rows.length;
     const gridN = nRows === 2 ? 3 : nRows;
@@ -500,6 +509,8 @@
     const types = level === 1 ? ['most', 'least', 'diff'] : ['most', 'least', 'diff', 'total'];
     const q = pick(types);
     let vals = genVals(n, level, sc);
+    // 모두 구하기는 합계가 교과서 수준을 넘지 않게 (10·1 그림 120 이하, 100·10 그림 1000 이하)
+    for (let t = 0; q === 'total' && t < 200 && vals.reduce((a, b) => a + b, 0) > (sc === 's1' ? 120 : 1000); t++) vals = genVals(n, level, sc);
     // 2단계부터 '가장 많은' 문제는 가끔 그림 개수가 많은 줄이 답이 아니게 (큰 그림부터 비교하는 연습)
     if (q === 'most' && level >= 2 && Math.random() < 0.6) {
       for (let t = 0; t < 200; t++) {
@@ -566,8 +577,9 @@
           { label: josaW(B, '은', '는'), unit: u, ans: vb, max: len, row: p.b, help: `${B} 줄을 읽어요: ${fmt(vb)}${u}`,
             why: x => (x === iconCount(vb, p.sc) ? `그림 개수 말고 ${u} 수를 읽어 보자` : '') }
         ],
-        direct: level >= 2,
-        focus: list => g.focus(list),
+        direct: false, allOn: true,
+        // 두 줄만 진하게, 지금 읽는 줄은 노랗게
+        focus: list => g.focus([p.a, p.b], list),
         rightMsg: '차이를 잘 구했어!',
         fin: {
           kind: 'num', pre: josaW(A, '이', '가'), unit: u, post: '더 많아', ans: d, max: len, row: [p.a, p.b],
@@ -589,8 +601,9 @@
       head: '줄마다 읽고 모두 더해요',
       rows: p.vals.map((v, i) => ({ label: josaW(cats[i], '은', '는'), unit: u, ans: v, max: len, row: i, help: `${cats[i]} 줄을 읽어요: ${fmt(v)}${u}`,
         why: x => (x === iconCount(v, p.sc) ? `그림 개수 말고 ${u} 수를 읽어 보자` : '') })),
-      direct: level >= 2,
-      focus: list => g.focus(list),
+      direct: false, allOn: true,
+      // 표는 처음부터 모두 진하게, 지금 읽는 줄만 노랗게
+      focus: list => g.focus(null, list),
       rightMsg: '모두 잘 더했어!',
       fin: {
         kind: 'num', pre: '모두', unit: u, ans: sum, max: String(sum).length, row: null,
@@ -646,14 +659,14 @@
     make: { title: '그림그래프 그리기', sub: '표의 수를 보고 그림그래프에 그려요', id: 'picture-graph-make',
       levels: [
         { name: '작은 수 그리기', desc: '10·1 그림, 40보다 작은 수. 그림 수를 먼저 쓰고 그려요.' },
-        { name: '조금 큰 수 그리기', desc: '10·1 그림, 60보다 작은 수.' },
+        { name: '조금 큰 수 그리기', desc: '10·1 그림, 45까지의 수.' },
         { name: '50 그림까지', desc: '100·50·10 그림. 그림 수가 가장 적게 그려요.' }
       ] },
     use: { title: '그래프 해석하기', sub: '그래프를 보고 가장 많은 곳, 차이, 모두를 알아봐요', id: 'picture-graph-use',
       levels: [
         { name: '비교하고 차이 구하기', desc: '10·1 그림, 줄 3개. 가장 많은/적은 곳, 차이(나눠 풀기).' },
-        { name: '모두 구하기까지', desc: '10·1 그림, 줄 4개. 바로 답하고, 틀리면 나눠 푸는 칸.' },
-        { name: '큰 수로', desc: '100·10 그림. 차이와 모두를 큰 수로.' }
+        { name: '모두 구하기까지', desc: '10·1 그림, 줄 4개. 모두 구하기까지 (합계 120 이하), 칸을 따라 풀어요.' },
+        { name: '큰 수로', desc: '100·10 그림(100~390). 차이와 모두를 큰 수로.' }
       ] }
   }[MODE];
 
