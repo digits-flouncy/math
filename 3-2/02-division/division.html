@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>나눗셈</title>
+<link rel="stylesheet" href="../../shared/tamheom.css?v=21" />
+<style>
+  .dv-q { font-size: 2.4rem; white-space: nowrap; text-align: center; margin: 6px 0 14px; font-weight: 900; }
+  .dv-pic { display: flex; flex-direction: column; align-items: center; gap: 18px; width: 100%; }
+
+  /* 세로 나눗셈 틀:   몫
+                     나누는 수 ) 나뉠 수 */
+  .ld { display: grid; grid-template-columns: auto auto; column-gap: 4px; font-size: 2.6rem; font-weight: 800; line-height: 1.2; }
+  .ld-q { grid-column: 2; text-align: right; color: var(--accent); padding-right: 10px; letter-spacing: 4px; }
+  .ld-d { grid-column: 1; grid-row: 2; padding-right: 4px; }
+  .ld-n { grid-column: 2; grid-row: 2; border-top: 4px solid var(--ink); border-left: 4px solid var(--ink); border-top-left-radius: 18px; padding: 2px 10px 0 16px; letter-spacing: 4px; }
+
+  /* 수 모형: 백 = 판, 십 = 막대, 일 = 낱개 */
+  .blocks { display: flex; flex-wrap: wrap; gap: 8px 14px; justify-content: center; align-items: flex-end; max-width: 100%; }
+  .bk-group { display: flex; gap: 5px; align-items: flex-end; flex-wrap: wrap; max-width: 230px; }
+  .bk-100 { width: 46px; height: 46px; border-radius: 4px; background: #f6c17a; border: 2px solid #d98a2b;
+    background-image: linear-gradient(#d98a2b55 1px, transparent 1px), linear-gradient(90deg, #d98a2b55 1px, transparent 1px); background-size: 4.4px 4.4px; }
+  .bk-10 { width: 10px; height: 46px; border-radius: 3px; background: #9cc8ee; border: 2px solid #3f86c6;
+    background-image: linear-gradient(#3f86c655 1px, transparent 1px); background-size: 100% 4.4px; }
+  .bk-1 { width: 10px; height: 10px; border-radius: 3px; background: #a6dbb1; border: 2px solid #3a9a52; }
+  .bk-units { display: grid; grid-template-columns: repeat(5, 10px); gap: 4px; align-content: end; }
+  .bk-cap { font-size: .95rem; color: var(--ink-soft); font-weight: 700; text-align: center; margin-top: 4px; }
+  .bk-col { display: flex; flex-direction: column; align-items: center; }
+
+  /* 단계 줄 안의 '나머지' 칸 */
+  .fs-row .fs-rem { font-size: 1.15rem; font-weight: 800; white-space: nowrap; margin-left: 4px; }
+  .frac-steps .w3.th-slot-sm { width: 78px; }
+  .frac-steps .w2.th-slot-sm { width: 62px; }
+  .frac-steps .fs-label { font-size: 1.22rem; }
+  .frac-steps { column-gap: 10px; }
+
+  /* 오른쪽 답 칸: 몫 [ ]   /  몫 [ ] 나머지 [ ] */
+  .fs-one { grid-template-rows: none; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .fs-qr { grid-template-columns: auto auto; column-gap: 8px; }
+  .fs-qr > .qr-l1 { grid-column: 1; grid-row: 1; }
+  .fs-qr > .qr-s1 { grid-column: 2; grid-row: 1; }
+  .fs-qr > .qr-l2 { grid-column: 1; grid-row: 3; }
+  .fs-qr > .qr-s2 { grid-column: 2; grid-row: 3; }
+  .fs-one .th-slot-sm, .fs-qr .th-slot-sm { height: 62px; font-size: 2rem; }
+  .fs-one .w3.th-slot-sm, .fs-qr .w3.th-slot-sm { width: 90px; }
+  .frac-steps.is-direct .fs-box { display: none; }
+  .frac-steps.is-direct > .fs-frac { grid-column: 1 / -1; justify-self: center; }
+
+  .th-play .th-cols { grid-template-columns: minmax(0, 1fr) minmax(470px, 1.1fr); }
+  .th-answer-col .th-bottom-play { display: none; }
+  .intro-ex { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: center; }
+  .intro-steps { padding-left: 1.2em; display: flex; flex-direction: column; gap: 8px; font-size: 1.15rem; }
+
+  /* 아이폰 세로 */
+  .th-narrow .dv-q { font-size: 2rem; }
+  .th-narrow .ld { font-size: 2.1rem; }
+  .th-narrow .frac-steps .fs-label { font-size: 1rem; flex: none; }
+  .th-narrow .fs-row .fs-unit { font-size: .85rem; white-space: normal; line-height: 1.2; }
+  .th-narrow .frac-steps .w3.th-slot-sm { width: 66px; }
+  .th-narrow .fs-one .th-slot-sm, .th-narrow .fs-qr .th-slot-sm { height: 52px; font-size: 1.6rem; }
+  .th-narrow .intro-ex { grid-template-columns: 1fr; }
+</style>
+</head>
+<body>
+<script src="../../shared/tamheom.js?v=21"></script>
+<script>
+(function () {
+  const T = Tamheom;
+  const { randInt, pick, h, josa } = T;
+  const MODE = ({ tens: 'tens', rem: 'rem', three: 'three' })[new URLSearchParams(location.search).get('t')] || 'tens';
+
+  /* ---------- 공통: 단계 풀이 흐름 (마지막 단계 = 최종 답) ---------- */
+  function runSteps(ctx, pad, steps, opts) {
+    const help = opts.help, stepsBox = opts.stepsBox;
+    let mode = opts.direct ? 'direct' : 'steps', cur = 0;
+    const last = steps[steps.length - 1];
+    steps.forEach(st => { st.wrongs = 0; });
+    function focus() {
+      steps.forEach((st, i) => { st.box.classList.toggle('is-now', i === cur); st.box.classList.toggle('is-done', i < cur); });
+      pad.setSlots(steps[cur].slots);
+    }
+    if (mode === 'steps') focus();
+    else { stepsBox.classList.add('is-direct'); last.box.classList.add('is-now'); pad.setSlots(last.slots); }
+    return function check() {
+      if (mode === 'direct') {
+        if (last.slots.some(s => s.value === '')) { ctx.say('빈칸에 숫자를 써 보자', 'info'); return; }
+        if (last.ok()) { last.slots.forEach(s => { s.mark('right'); s.lock(); }); ctx.correct(opts.praise); return; }
+        last.slots.forEach(s => s.mark('wrong'));
+        ctx.wrong('괜찮아, 하나씩 같이 해 보자 🐸');
+        last.slots.forEach(s => s.clear());
+        mode = 'steps'; cur = 0;
+        stepsBox.classList.remove('is-direct'); last.box.classList.remove('is-now');
+        focus();
+        return;
+      }
+      const st = steps[cur];
+      if (st.slots.some(s => s.value === '')) { ctx.say('빈칸에 숫자를 써 보자', 'info'); return; }
+      if (st.ok()) {
+        st.slots.forEach(s => { s.mark('right'); s.lock(); });
+        help.innerHTML = '';
+        if (cur < steps.length - 1) { cur += 1; focus(); }
+        else { steps.forEach(x => { x.box.classList.remove('is-now'); x.box.classList.add('is-done'); }); ctx.correct(opts.praise); }
+        return;
+      }
+      const why = st.why ? st.why() : '';
+      st.slots.forEach(s => s.mark('wrong'));
+      st.wrongs += 1;
+      ctx.wrong(why || undefined);
+      if (st.wrongs >= 2) help.innerHTML = '도움: ' + st.help;
+      pad.setSlots(st.slots);
+    };
+  }
+  const sm = max => {
+    const s = T.slot({ small: true, max: max || 2, label: '숫자 칸' });
+    if ((max || 2) >= 3) s.el.classList.add('w3'); else if (max === 2) s.el.classList.add('w2');
+    return s;
+  };
+  const digits = n => String(n).length;
+  function cols(el) {
+    const c = h('div', 'th-cols'), left = h('div', 'th-visual'), right = h('div', 'th-answer-col');
+    c.appendChild(left); c.appendChild(right); el.appendChild(c);
+    return { left, right };
+  }
+
+  /* ---------- 나눗셈 나누기: 큰 자리부터 '나누는 수의 몇십·몇백 배'씩 떼어 내기 ----------
+     예) 45÷3 → 30÷3=10, 15÷3=5 / 645÷3 → 600÷3=200, 30÷3=10, 15÷3=5 / 35÷2 → 20÷2=10, 15÷2=7…1 */
+  function parts(n, d) {
+    const rows = [];
+    let rest = n;
+    [100, 10, 1].forEach(p => {
+      const k = Math.floor(rest / (d * p));
+      if (k > 0) { rows.push({ part: k * d * p, q: k * p, p }); rest -= k * d * p; }
+    });
+    const r = rest;
+    if (r > 0 && rows.length) { rows[rows.length - 1].part += r; rows[rows.length - 1].r = r; }
+    return { rows, q: Math.floor(n / d), r: n % d };
+  }
+  // 나머지가 있으면 마지막 줄이 일의 자리여야 함 (61÷3처럼 줄이 문제 전체가 되는 경우 빼기)
+  const goodSplit = (n, d) => { const s = parts(n, d); return s.r === 0 || s.rows[s.rows.length - 1].p === 1; };
+  const hasCarry = (n, d) => String(n).split('').map(Number).some((x, i, a) => i < a.length - 1 && x % d !== 0 && x >= 0) ;
+
+  /* ---------- 문제 만들기 ---------- */
+  function makeTens(level) {
+    for (let t = 0; t < 400; t++) {
+      const kind = level === 3 ? pick([1, 2]) : level;
+      let d, n;
+      if (kind === 1) { // 내림 없음: 각 자리가 나누어떨어짐 (60÷3, 84÷4)
+        d = randInt(2, 4);
+        const a = randInt(1, Math.floor(9 / d)), b = Math.random() < 0.3 ? 0 : randInt(0, Math.floor(9 / d));
+        n = (a * 10 + b) * d;
+        if (Math.floor(n / 10) % d !== 0 || (n % 10) % d !== 0) continue;
+      } else {          // 내림 있음: 50÷2, 45÷3, 72÷6
+        d = randInt(2, 7);
+        const q = randInt(10, Math.floor(99 / d));
+        n = q * d;
+        if (Math.floor(n / 10) % d === 0) continue;
+      }
+      if (n < 10 || n > 99 || Math.floor(n / d) < 10) continue;
+      return { n, d };
+    }
+    return { n: 48, d: 4 };
+  }
+  function makeRem(level) {
+    for (let t = 0; t < 400; t++) {
+      const kind = level === 3 ? pick([1, 2]) : level;
+      const d = randInt(2, kind === 1 ? 9 : 7);
+      const q = kind === 1 ? randInt(2, 9) : randInt(10, Math.floor(98 / d));
+      const r = randInt(1, d - 1);
+      const n = q * d + r;
+      if (n < 10 || n > 99) continue;
+      if (kind === 2 && !goodSplit(n, d)) continue;
+      return { n, d };
+    }
+    return { n: 17, d: 5 };
+  }
+  function makeThree(level) {
+    for (let t = 0; t < 600; t++) {
+      let d, n;
+      if (level === 1) { // 각 자리가 나누어떨어짐 (420÷2, 369÷3)
+        d = randInt(2, 4);
+        const a = randInt(1, Math.floor(9 / d)), b = randInt(0, Math.floor(9 / d)), c = randInt(0, Math.floor(9 / d));
+        n = (a * 100 + b * 10 + c) * d;
+        if (!(b || c)) continue;
+      } else if (level === 2) { // 내림 있음, 나누어떨어짐, 몫이 세 자리 (645÷3)
+        d = randInt(2, 6);
+        const q = randInt(100, Math.floor(999 / d));
+        n = q * d;
+        if (!hasCarry(n, d)) continue;
+      } else {           // 나머지 있음, 몫이 두 자리일 수도 (307÷3, 386÷6)
+        d = randInt(2, 9);
+        const q = randInt(Math.ceil(100 / d), Math.floor(998 / d));
+        const r = randInt(0, d - 1);
+        n = q * d + r;
+        if (!goodSplit(n, d)) continue;
+      }
+      if (n < 100 || n > 999) continue;
+      return { n, d };
+    }
+    return { n: 645, d: 3 };
+  }
+
+  /* ---------- 그림: 수 모형 ---------- */
+  function blocks(n) {
+    const box = h('div', 'blocks');
+    const H = Math.floor(n / 100), Tn = Math.floor(n / 10) % 10, O = n % 10;
+    const col = (cls, k, cap, wrap) => {
+      if (!k) return;
+      const c = h('div', 'bk-col'), g = h('div', wrap || 'bk-group');
+      for (let i = 0; i < k; i++) g.appendChild(h('span', cls));
+      c.appendChild(g); c.appendChild(h('div', 'bk-cap', cap));
+      box.appendChild(c);
+    };
+    col('bk-100', H, `100이 ${H}개`);
+    col('bk-10', Tn, `10이 ${Tn}개`);
+    col('bk-1', O, `1이 ${O}개`, 'bk-units');
+    return box;
+  }
+  function longDiv(n, d) {
+    const ld = h('div', 'ld');
+    ld.appendChild(h('span', 'ld-q', '?'));
+    ld.appendChild(h('span', 'ld-d', String(d)));
+    ld.appendChild(h('span', 'ld-n', String(n)));
+    return ld;
+  }
+
+  /* ---------- 문제 화면 ---------- */
+  function divQuestion(el, ctx, p) {
+    const { n, d } = p;
+    const sp = parts(n, d), Q = sp.q, R = sp.r;
+    const { left, right } = cols(el);
+    left.appendChild(h('div', 'th-question dv-q', `${n} ÷ ${d}`));
+    const pic = h('div', 'dv-pic');
+    pic.appendChild(longDiv(n, d));
+    pic.appendChild(blocks(n));
+    left.appendChild(pic);
+
+    // 오른쪽 최종 답 칸
+    let fin, finSlots, finOk;
+    const qs = sm(digits(Q));
+    if (R || MODE === 'rem') {
+      const rs = sm(1);
+      fin = h('div', 'fs-frac fs-qr');
+      fin.appendChild(h('span', 'fs-unit qr-l1', '몫')); qs.el.classList.add('qr-s1'); fin.appendChild(qs.el);
+      fin.appendChild(h('span', 'fs-unit qr-l2', '나머지')); rs.el.classList.add('qr-s2'); fin.appendChild(rs.el);
+      finSlots = [qs, rs]; finOk = () => qs.number === Q && rs.number === R;
+    } else {
+      fin = h('div', 'fs-frac fs-one');
+      fin.appendChild(h('span', 'fs-unit', '몫')); fin.appendChild(qs.el);
+      finSlots = [qs]; finOk = () => qs.number === Q;
+    }
+
+    // 단계 줄
+    const steps = [], rows = [];
+    if (Q < 10) {
+      // 몫이 한 자리: ① d × [ ] 가 n을 넘지 않게 가장 크게 ② 남는 것
+      const a = sm(1), b = sm(2);
+      steps.push({ slots: [a], ok: () => a.number === Q,
+        why: () => a.number * d > n ? `${d} × ${a.number} = ${josa(a.number * d, '은', '는')} ${n}보다 커` : (n - a.number * d >= d ? `${d}씩 한 번 더 덜어 낼 수 있어` : ''),
+        help: `${d} × ${Q} = ${Q * d}, ${d} × ${Q + 1} = ${(Q + 1) * d}, 그래서 ${n}을 넘지 않는 건 ${Q}` });
+      rows.push({ label: `① ${d} × `, slot: a, unit: `(${josa(n, '을', '를')} 넘지 않게)`, step: steps[0] });
+      steps.push({ slots: [b], ok: () => b.number === R,
+        why: () => b.number >= d ? `나머지는 ${d}보다 작아야 해` : '', help: `${n} − ${Q * d} = ${R}` });
+      rows.push({ label: `② 남는 것은`, slot: b, step: steps[1] });
+    } else if (sp.rows.length === 1) {
+      // 몇십÷몇, 몇백÷몇: 먼저 6÷3을 생각
+      const r0 = sp.rows[0], small = r0.part / r0.p, a = sm(1);
+      steps.push({ slots: [a], ok: () => a.number === small / d, why: () => '',
+        help: `${d} × ${small / d} = ${small}` });
+      rows.push({ label: `① ${small} ÷ ${d} =`, slot: a, step: steps[0] });
+    } else {
+      sp.rows.forEach((r0, i) => {
+        const a = sm(digits(r0.q));
+        const slots = [a];
+        let b = null;
+        if (r0.r) { b = sm(1); slots.push(b); }
+        steps.push({ slots,
+          ok: () => a.number === r0.q && (!b || b.number === r0.r),
+          why: () => (a.number === r0.q / r0.p && r0.p > 1) ? `${r0.part - (r0.r || 0)}을 ${d}로 나누면 ${r0.p === 100 ? '몇백' : '몇십'}이야` : '',
+          help: `${d} × ${r0.q} = ${r0.q * d}` + (r0.r ? `, ${r0.part} − ${r0.q * d} = ${r0.r}` : '') });
+        rows.push({ label: `${'①②③'[i]} ${r0.part} ÷ ${d} =`, slot: a, extra: b, step: steps[i] });
+      });
+    }
+    steps.push({ slots: finSlots, box: fin, ok: finOk,
+      why: () => (Q >= 10 && qs.number !== Q && sp.rows.length > 1) ? '①②의 몫을 모두 더해 보자' : '',
+      help: Q >= 10 && sp.rows.length > 1 ? `${sp.rows.map(x => x.q).join(' + ')} = ${Q}` : `${n} ÷ ${d} = ${Q}` + (R ? ` … ${R}` : '') });
+    if (Q >= 10 && sp.rows.length === 1) steps[steps.length - 1].help = `${sp.rows[0].part / sp.rows[0].p} ÷ ${d} = ${Q / sp.rows[0].p} 이니까 ${n} ÷ ${d} = ${Q}`;
+
+    const stepsBox = h('div', 'frac-steps');
+    const qbox = h('div', 'fs-box');
+    rows.forEach((r, i) => {
+      const row = h('div', 'fs-row');
+      row.appendChild(h('span', 'fs-label', r.label));
+      row.appendChild(r.slot.el);
+      if (r.unit) row.appendChild(h('span', 'fs-unit', r.unit));
+      if (r.extra) { row.appendChild(h('span', 'fs-rem', '나머지')); row.appendChild(r.extra.el); }
+      r.step.box = row;
+      if (i === 1 && rows.length === 2) qbox.appendChild(h('div', 'fs-gap'));
+      qbox.appendChild(row);
+    });
+    stepsBox.appendChild(h('div', 'fs-head', R ? `몫과 나머지는?` : `몫은 얼마일까요?`));
+    stepsBox.appendChild(qbox);
+    stepsBox.appendChild(fin);
+    const help = h('div', 'step-help fs-help');
+    stepsBox.appendChild(help);
+    right.appendChild(stepsBox);
+
+    const pad = T.keypad({ slots: [], onCheck: () => check(), checkInPad: true });
+    right.appendChild(pad.el);
+    const check = runSteps(ctx, pad, steps, { help, stepsBox, direct: ctx.level === 3, praise: R ? '몫과 나머지를 잘 구했어!' : '나눗셈을 잘했어!' });
+  }
+
+  /* ---------- 설명 화면 ---------- */
+  function intro(el) {
+    const box = h('div', 'intro-ex');
+    const pic = h('div', 'dv-pic');
+    const text = h('div');
+    if (MODE === 'tens') {
+      pic.appendChild(longDiv(45, 3)); pic.appendChild(blocks(45));
+      text.innerHTML = `<p class="th-question" style="text-align:left;font-size:1.4rem">45 ÷ 3 = 15</p>
+        <ol class="intro-steps"><li>45를 <b>30</b>과 <b>15</b>로 나눠요</li><li>① 30 ÷ 3 = <b>10</b></li><li>② 15 ÷ 3 = <b>5</b></li><li>몫: 10 + 5 = <b>15</b></li></ol>`;
+    } else if (MODE === 'rem') {
+      pic.appendChild(longDiv(17, 5)); pic.appendChild(blocks(17));
+      text.innerHTML = `<p class="th-question" style="text-align:left;font-size:1.4rem">17 ÷ 5 = 3 … 2</p>
+        <ol class="intro-steps"><li>5 × 3 = 15, 5 × 4 = 20 그래서 17을 넘지 않는 건 <b>3</b></li><li>남는 것: 17 − 15 = <b>2</b></li><li>몫 <b>3</b>, 나머지 <b>2</b></li><li>나머지는 나누는 수(5)보다 <b>작아요</b></li></ol>`;
+    } else {
+      pic.appendChild(longDiv(645, 3)); pic.appendChild(blocks(645));
+      text.innerHTML = `<p class="th-question" style="text-align:left;font-size:1.4rem">645 ÷ 3 = 215</p>
+        <ol class="intro-steps"><li>① 600 ÷ 3 = <b>200</b></li><li>② 30 ÷ 3 = <b>10</b></li><li>③ 15 ÷ 3 = <b>5</b></li><li>몫: 200 + 10 + 5 = <b>215</b></li></ol>`;
+    }
+    box.appendChild(pic); box.appendChild(text);
+    el.appendChild(box);
+  }
+
+  const META = {
+    tens: { title: '두 자리 수 나누기', emoji: '➗', sub: '(몇십), (몇십몇) ÷ (몇)', id: 'division-tens',
+      levels: [
+        { name: '나누어떨어지는 자리', desc: '60 ÷ 3, 84 ÷ 4 처럼 자리마다 나눠요. 차근차근.' },
+        { name: '내림이 있는 나눗셈', desc: '45 ÷ 3 처럼 30과 15로 나눠요. 차근차근.' },
+        { name: '바로 답 쓰기', desc: '답만 써요. 틀리면 풀이 칸이 나와요.' }
+      ] },
+    rem: { title: '나머지 나눗셈', emoji: '🍪', sub: '몫과 나머지를 구해요', id: 'division-rem',
+      levels: [
+        { name: '몫이 한 자리', desc: '17 ÷ 5 = 3 … 2 처럼. 차근차근.' },
+        { name: '몫이 두 자리', desc: '35 ÷ 2 = 17 … 1 처럼. 차근차근.' },
+        { name: '바로 답 쓰기', desc: '답만 써요. 틀리면 풀이 칸이 나와요.' }
+      ] },
+    three: { title: '세 자리 수 나누기', emoji: '📦', sub: '(세 자리 수) ÷ (한 자리 수)', id: 'division-three',
+      levels: [
+        { name: '자리마다 나누기', desc: '420 ÷ 2, 369 ÷ 3 처럼. 차근차근.' },
+        { name: '내림이 있는 나눗셈', desc: '645 ÷ 3 처럼. 차근차근.' },
+        { name: '나머지도 있고, 바로 답 쓰기', desc: '307 ÷ 3 처럼. 답만 써요. 틀리면 풀이 칸이 나와요.' }
+      ] }
+  }[MODE];
+
+  document.title = META.title;
+  T.activity({
+    id: META.id,
+    title: META.title,
+    emoji: META.emoji,
+    accent: '#7a4fb3',
+    accentSoft: '#f1eafb',
+    oneLineTop: true,
+    toast: true,
+    subtitle: META.sub,
+    levels: META.levels,
+    intro,
+    question(el, ctx) {
+      const make = { tens: makeTens, rem: makeRem, three: makeThree }[MODE];
+      const p = ctx.review || make(ctx.level);
+      ctx.setData(p);
+      window.__dv = p;
+      divQuestion(el, ctx, p);
+    }
+  });
+})();
+</script>
+</body>
+</html>
