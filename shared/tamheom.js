@@ -153,6 +153,8 @@
       Array.from(files).forEach(f => st.add({ slot, name: f.name, blob: f }));
     }).then(loadClips);
   }
+  const isAppleTouch = /iPad|iPhone|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+  function isAudioFile(f) { return /^audio\//.test(f.type || '') || /\.(mp3|m4a|wav|aac|ogg|oga|caf)$/i.test(f.name || ''); }
   function removeClip(id) { return idbDo('readwrite', st => st.delete(id)).then(loadClips); }
   loadClips();
 
@@ -798,8 +800,15 @@
           });
           const pickBtn = h('label', 'th-seg-btn th-file-btn', clips[info.slot].length && !info.multiple ? '바꾸기' : '+ 파일 넣기');
           const input = document.createElement('input');
-          input.type = 'file'; input.accept = 'audio/*'; input.multiple = !!info.multiple; input.hidden = true;
-          input.addEventListener('change', () => { if (input.files.length) addClips(info.slot, input.files).then(paintClips); });
+          input.type = 'file'; input.multiple = !!info.multiple; input.hidden = true;
+          /* 아이패드 Safari는 accept="audio/*"이면 파일 앱에서 mp3를 막고 mp4만 고르게 함 → iOS/iPadOS에선 accept를 빼고 아래에서 걸러냄 */
+          if (!isAppleTouch) input.accept = 'audio/*,.mp3,.m4a,.wav,.aac,.ogg';
+          input.addEventListener('change', () => {
+            const ok = Array.from(input.files).filter(isAudioFile);
+            if (ok.length < input.files.length) toast('소리 파일(mp3, m4a, wav)만 넣을 수 있어요.', 'retry');
+            if (ok.length) addClips(info.slot, ok).then(paintClips);
+            input.value = '';
+          });
           pickBtn.appendChild(input);
           row.appendChild(pickBtn);
           recList.appendChild(row);
