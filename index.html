@@ -26,7 +26,8 @@
   .subtitle { font-size: 1.15rem; color: #888; margin-bottom: 28px; text-align: center; }
 
   .grid { display: grid; gap: 20px; justify-content: center; }
-  .grid.sem { grid-template-columns: repeat(2, 280px); }
+  .grid.sem { grid-template-columns: repeat(3, 290px); }
+  .sem .tile-big { font-size: 2.3rem; white-space: nowrap; }
   .grid.units { grid-template-columns: repeat(3, 250px); }
   .grid.acts { grid-template-columns: repeat(var(--n, 3), 240px); }
 
@@ -113,6 +114,11 @@
       { no: 4, name: '곱셈과 나눗셈', emoji: '🧮', acts: [] },
       { no: 5, name: '규칙 찾기', emoji: '🔍', acts: [] },
       { no: 6, name: '막대그래프', emoji: '📊', acts: [] }
+    ] },
+    { id: 'mid', title: '중학 · 일차식', emoji: '✖️', c: '#e6a0b4', c2: '#b03a5b', c3: '#fbedf1', units: [
+      { no: 1, name: '분배법칙', emoji: '✖️', acts: [
+        { href: 'middle/01-distributive/distribute.html', emoji: '✖️', title: '괄호 풀기', desc: '−(x − 7), −2(x + 5) 처럼<br>괄호를 풀어요!', c: '#e6a0b4', c2: '#b03a5b', c3: '#fbedf1' }
+      ] }
     ] }
   ];
 

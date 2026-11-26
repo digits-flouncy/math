@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>분배법칙 연습</title>
+<style>
+  :root {
+    --bg: #f2f5fb;
+    --card: #ffffff;
+    --ink: #24304a;
+    --ink-soft: #5d6a85;
+    --line: #d9e1f0;
+    --accent: #2f5fb3;
+    --accent-soft: #e7eefb;
+    --good: #2f7a47;
+    --good-soft: #dcf1e1;
+    --retry: #9a5b13;
+    --retry-soft: #fbf0e0;
+    --key: #ffffff;
+    --op: #eef2fa;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Nanum Gothic', 'Malgun Gothic', sans-serif;
+    background: var(--bg); color: var(--ink);
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none; user-select: none;
+  }
+  button, a { font-family: inherit; touch-action: manipulation; }
+
+  .app {
+    height: 100vh; height: 100dvh;
+    display: grid; grid-template-rows: auto 1fr;
+    padding: max(10px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+    gap: 12px; max-width: 1500px; margin: 0 auto;
+  }
+
+  /* 윗줄: 홈 · 제목 · 기록 · 단계 */
+  .top { display: flex; align-items: center; gap: 12px; }
+  .icon-btn {
+    width: 52px; height: 52px; flex: none; border-radius: 14px; border: 2px solid var(--line); background: var(--card);
+    font-size: 1.4rem; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; color: inherit; cursor: pointer;
+  }
+  .title { font-size: 1.5rem; font-weight: 900; color: var(--accent); white-space: nowrap; }
+  .stats { margin-left: auto; display: flex; gap: 8px; font-size: 1rem; font-weight: 800; color: var(--ink-soft); white-space: nowrap; }
+  .stat { background: var(--card); border: 2px solid var(--line); border-radius: 99px; padding: 6px 12px; }
+  .stat b { color: var(--accent); }
+  .levels { display: flex; gap: 4px; background: var(--card); border: 2px solid var(--line); border-radius: 14px; padding: 4px; }
+  .lv { min-width: 40px; height: 40px; border-radius: 10px; border: 0; background: transparent; font-size: 1.05rem; font-weight: 900; color: var(--ink-soft); cursor: pointer; }
+  .lv.is-on { background: var(--accent); color: #fff; }
+  .lv-label { font-size: .85rem; font-weight: 800; color: var(--ink-soft); padding: 0 4px 0 6px; align-self: center; }
+
+  /* 본문: 왼쪽 문제·답, 오른쪽 키패드 */
+  .main { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(320px, 1fr); gap: 18px; min-height: 0; }
+  .card { background: var(--card); border-radius: 24px; box-shadow: 0 6px 20px rgba(30,50,90,.08); }
+  .work { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2.2vh; padding: 3vh 24px; min-height: 0; position: relative; }
+
+  .ask { font-size: clamp(1rem, 2.2vh, 1.3rem); color: var(--ink-soft); font-weight: 700; }
+  .problem { font-size: clamp(2.4rem, 9vh, 5.2rem); font-weight: 900; white-space: nowrap; letter-spacing: 1px; }
+  .problem .eq { color: var(--ink-soft); font-weight: 700; }
+  i.v { font-family: 'Times New Roman', Georgia, serif; font-style: italic; font-weight: 700; padding: 0 .04em; }
+
+  .answer {
+    width: min(100%, 620px); min-height: clamp(70px, 13vh, 120px);
+    border: 4px solid var(--accent); border-radius: 20px; background: var(--accent-soft);
+    display: flex; align-items: center; justify-content: center;
+    font-size: clamp(2.2rem, 8vh, 4.6rem); font-weight: 900; white-space: nowrap; overflow: hidden; padding: 0 16px;
+  }
+  .answer.is-empty::after { content: '답을 써 봐요'; font-size: .45em; color: var(--ink-soft); font-weight: 700; }
+  .answer.is-right { border-color: var(--good); background: var(--good-soft); color: var(--good); }
+  .answer.is-wrong { border-color: var(--retry); background: var(--retry-soft); }
+  .caret { display: inline-block; width: 4px; height: .9em; background: var(--accent); margin-left: 4px; vertical-align: -.08em; animation: blink 1s steps(1) infinite; }
+  .answer.is-right .caret { display: none; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .tried { font-size: clamp(1rem, 2.6vh, 1.4rem); color: var(--retry); font-weight: 800; min-height: 1.4em; white-space: nowrap; }
+  .tried s { text-decoration-thickness: 3px; }
+
+  .feedback {
+    width: min(100%, 680px); min-height: clamp(84px, 15vh, 140px); border-radius: 18px; padding: 12px 18px;
+    font-size: clamp(1rem, 2.6vh, 1.35rem); line-height: 1.55; font-weight: 700; text-align: center; word-break: keep-all;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    background: transparent; color: var(--ink-soft);
+  }
+  .feedback.is-good { background: var(--good-soft); color: var(--good); }
+  .feedback.is-retry { background: var(--retry-soft); color: var(--retry); }
+  .feedback .step { font-size: 1.12em; color: var(--ink); white-space: nowrap; }
+  .feedback small { font-size: .85em; font-weight: 700; opacity: .9; }
+
+  .rule-btn { position: absolute; top: 14px; right: 14px; border: 2px solid var(--line); background: var(--card); color: var(--ink-soft);
+    border-radius: 99px; padding: 6px 14px; font-size: .95rem; font-weight: 800; cursor: pointer; }
+  .rule { position: absolute; top: 58px; right: 14px; width: min(92%, 420px); background: #fffbe8; border: 2px solid #f0dfa0; border-radius: 16px;
+    padding: 14px 16px; font-size: 1.05rem; line-height: 1.7; text-align: left; z-index: 2; box-shadow: 0 8px 20px rgba(0,0,0,.08); }
+  .rule[hidden] { display: none; }
+  .rule b { color: var(--accent); }
+
+  /* 키패드 */
+  .pad { display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr); gap: 12px; padding: 16px; min-height: 0; }
+  .key {
+    border: 2px solid var(--line); background: var(--key); border-radius: 18px;
+    font-size: clamp(1.6rem, 5.5vh, 2.8rem); font-weight: 800; color: var(--ink); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; min-height: 56px;
+    box-shadow: 0 3px 0 var(--line);
+  }
+  .key:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
+  .key.op { background: var(--op); color: var(--accent); }
+  .key.x { background: var(--accent-soft); color: var(--accent); }
+  .key.back { font-size: clamp(1.3rem, 4.2vh, 2.1rem); }
+  .key.check { grid-column: span 2; background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 3px 0 #1d3f7d; font-size: clamp(1.4rem, 4.6vh, 2.3rem); }
+  .key.check.is-next { background: var(--good); border-color: var(--good); box-shadow: 0 3px 0 #1d5531; }
+
+  /* 아이폰 세로: 위아래로 쌓고, 키패드는 아래에 계산기처럼 */
+  @media (max-width: 700px) {
+    body { overflow: auto; }
+    .app { height: auto; min-height: 100vh; min-height: 100dvh; gap: 8px; padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+    .wide-only { display: none; }
+    .top { gap: 6px; }
+    .icon-btn { width: 42px; height: 42px; font-size: 1.15rem; border-radius: 12px; }
+    .title { font-size: 1.15rem; }
+    .stats { font-size: .85rem; }
+    .stat { padding: 4px 9px; }
+    .levels { padding: 3px; gap: 2px; border-radius: 12px; }
+    .lv { min-width: 32px; height: 34px; font-size: .95rem; }
+    .main { grid-template-columns: 1fr; grid-template-rows: auto auto; gap: 10px; }
+    .work { padding: 44px 12px 12px; gap: 8px; }
+    .ask { display: none; }
+    .rule-btn { top: 8px; right: 8px; padding: 3px 11px; font-size: .85rem; }
+    .rule { top: 40px; right: 8px; }
+    .tried:empty, .feedback:empty { display: none; }
+    .problem { font-size: clamp(2rem, 11vw, 3rem); }
+    .answer { font-size: clamp(1.8rem, 10vw, 2.6rem); min-height: 62px; }
+    .feedback { min-height: 78px; font-size: 1rem; padding: 8px 10px; }
+    .feedback .step { white-space: normal; }
+    .pad { gap: 8px; padding: 10px; grid-template-rows: repeat(4, 52px); }
+    .key { font-size: 1.8rem; border-radius: 14px; }
+    .key.check { font-size: 1.5rem; }
+  }
+  /* 아이폰 가로: 높이가 낮으니 글자만 줄임 */
+  @media (max-height: 500px) and (min-width: 701px) {
+    .icon-btn { width: 42px; height: 42px; }
+    .lv { height: 34px; min-width: 34px; }
+    .work { gap: 6px; padding: 10px 16px; }
+    .pad { gap: 6px; padding: 8px; }
+    .key { min-height: 0; border-radius: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <a class="icon-btn" href="../../index.html" aria-label="처음 화면으로">🏠</a>
+    <div class="title"><span class="wide-only">✖️ </span>분배법칙<span class="wide-only"> 연습</span></div>
+    <div class="stats">
+      <span class="stat wide-only">맞힘 <b id="solved">0</b></span>
+      <span class="stat">연속 <b id="streak">0</b></span>
+    </div>
+    <div class="levels" role="group" aria-label="단계">
+      <span class="lv-label wide-only">단계</span>
+      <button type="button" class="lv" data-lv="1">1</button>
+      <button type="button" class="lv" data-lv="2">2</button>
+      <button type="button" class="lv" data-lv="3">3</button>
+      <button type="button" class="lv" data-lv="4">4</button>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="card work">
+      <button type="button" class="rule-btn" id="ruleBtn">💡 규칙</button>
+      <div class="rule" id="rule" hidden>
+        괄호 앞의 수를 괄호 안의 <b>모든 항</b>에 곱해요.<br>
+        <span class="mx" id="ruleEx"></span><br>
+        부호: (−) × (+) = <b>−</b>, &nbsp;(−) × (−) = <b>+</b>
+      </div>
+      <div class="ask" id="ask">괄호를 풀어 보세요</div>
+      <div class="problem" id="problem"></div>
+      <div class="answer is-empty" id="answer" aria-live="polite"></div>
+      <div class="tried" id="tried"></div>
+      <div class="feedback" id="feedback" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="card pad" id="pad" aria-label="키패드">
+      <button type="button" class="key" data-k="7">7</button>
+      <button type="button" class="key" data-k="8">8</button>
+      <button type="button" class="key" data-k="9">9</button>
+      <button type="button" class="key back" data-k="back" aria-label="한 글자 지우기">⌫</button>
+      <button type="button" class="key" data-k="4">4</button>
+      <button type="button" class="key" data-k="5">5</button>
+      <button type="button" class="key" data-k="6">6</button>
+      <button type="button" class="key op" data-k="+">+</button>
+      <button type="button" class="key" data-k="1">1</button>
+      <button type="button" class="key" data-k="2">2</button>
+      <button type="button" class="key" data-k="3">3</button>
+      <button type="button" class="key op" data-k="-" aria-label="빼기">−</button>
+      <button type="button" class="key" data-k="0">0</button>
+      <button type="button" class="key x" data-k="x" aria-label="x"><i class="v">x</i></button>
+      <button type="button" class="key check" data-k="enter" id="check">확인</button>
+    </section>
+  </main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  const ID = 'mid-distribute';
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('th:' + ID + ':' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem('th:' + ID + ':' + k, JSON.stringify(v)); } catch (e) { /* 저장 못 해도 동작 */ } }
+  };
+  const $ = id => document.getElementById(id);
+  const randInt = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+  const pick = arr => arr[randInt(0, arr.length - 1)];
+  const MINUS = '−';
+  // 숫자 뒤 을/를: 1·3·6·7·8·0은 받침 있음
+  const eul = n => /[136780]$/.test(String(Math.abs(n))) ? '을' : '를';
+
+  /* ---------- 식 글자로 쓰기 ---------- */
+  const X = '<i class="v">x</i>';
+  // 항 목록 [{k, x}] → "−2x + 7" (첫 항은 + 생략)
+  function termsHTML(terms) {
+    return terms.map((t, i) => {
+      const neg = t.k < 0, abs = Math.abs(t.k);
+      const body = t.x ? (abs === 1 ? '' : abs) + X : String(abs);
+      if (i === 0) return (neg ? MINUS : '') + body;
+      return (neg ? ' ' + MINUS + ' ' : ' + ') + body;
+    }).join('');
+  }
+  const prefixHTML = a => a === 1 ? '' : a === -1 ? MINUS : (a < 0 ? MINUS + Math.abs(a) : String(a));
+  const signed = n => n < 0 ? '(' + MINUS + Math.abs(n) + ')' : '(+' + n + ')';
+  const factor = a => a < 0 ? '(' + MINUS + Math.abs(a) + ')' : String(a);
+  const termOnly = t => t.x ? (Math.abs(t.k) === 1 ? (t.k < 0 ? MINUS : '') : (t.k < 0 ? MINUS : '') + Math.abs(t.k)) + X : String(t.k).replace('-', MINUS);
+  const termParen = t => (t.k < 0 || t.x === false) ? (t.x ? '(' + termOnly(t) + ')' : signed(t.k)) : termOnly(t);
+
+  /* ---------- 문제 만들기 ----------
+   * 1단계: −(x ± c)
+   * 2단계: ±n(x ± c)
+   * 3단계: ±n(bx ± c)
+   * 4단계: 섞어서 + 괄호 안 순서가 바뀐 것 (c − bx), 앞 항이 음수인 것 (−bx + c)
+   * 숫자는 모두 한 자리 수 (1~9). 괄호 앞이 음수인 문제를 더 자주 냄. */
+  const LEVELS = 4;
+  function makeProblem(level) {
+    const sgn = () => Math.random() < 0.5 ? 1 : -1;
+    let a, b = 1, form = 'xc';
+    if (level === 1) a = -1;
+    else {
+      const n = Math.random() < 0.12 ? 1 : randInt(2, 9);
+      a = (Math.random() < 0.72 ? -1 : 1) * n;
+      if (a === 1) a = -1;
+      if (level >= 3) b = randInt(2, 9);
+      if (level === 4) { b = Math.random() < 0.3 ? 1 : randInt(2, 9); form = pick(['xc', 'xc', 'cx', 'negx']); }
+    }
+    const c = randInt(1, 9);
+    let inner;
+    if (form === 'xc') inner = [{ k: b, x: true }, { k: sgn() * c, x: false }];
+    else if (form === 'cx') inner = [{ k: c, x: false }, { k: -b, x: true }];
+    else inner = [{ k: -b, x: true }, { k: sgn() * c, x: false }];
+    return { a, inner };
+  }
+  const keyOf = p => p.a + '|' + p.inner.map(t => t.k + (t.x ? 'x' : '')).join(',');
+  function expected(p) {
+    let xk = 0, ck = 0;
+    p.inner.forEach(t => { if (t.x) xk += p.a * t.k; else ck += p.a * t.k; });
+    return { xk, ck };
+  }
+  const innerX = p => p.inner.find(t => t.x).k;
+  const innerC = p => p.inner.find(t => !t.x).k;
+
+  /* ---------- 답 읽기 ----------
+   * "-x+7", "7-x", "-1x+7", "+7-x" 모두 같은 답으로 받음.
+   * 돌려줌: { ok:false, why } 또는 { xk, ck, xTerms, cTerms, oneX } */
+  function parse(s) {
+    if (!s) return { ok: false, why: 'empty' };
+    let i = 0, xk = 0, ck = 0, xTerms = 0, cTerms = 0, oneX = false;
+    while (i < s.length) {
+      let sign = 1;
+      if (s[i] === '+' || s[i] === '-') { sign = s[i] === '-' ? -1 : 1; i++; }
+      else if (i > 0) return { ok: false, why: 'shape' };
+      let num = '';
+      while (i < s.length && /\d/.test(s[i])) num += s[i++];
+      let hasX = false;
+      if (s[i] === 'x') { hasX = true; i++; }
+      if (!num && !hasX) return { ok: false, why: 'shape' };
+      if (i < s.length && s[i] !== '+' && s[i] !== '-') return { ok: false, why: 'shape' };
+      if (hasX) { if (num === '1') oneX = true; xk += sign * (num ? parseInt(num, 10) : 1); xTerms++; }
+      else { ck += sign * parseInt(num, 10); cTerms++; }
+    }
+    return { ok: true, xk, ck, xTerms, cTerms, oneX };
+  }
+  const showInput = s => s.replace(/-/g, MINUS).replace(/x/g, X).replace(/([+−])/g, ' $1 ').replace(/^ ([+−]) /, '$1').trim();
+
+  /* ---------- 틀렸을 때 짚어 주기 ---------- */
+  function stepLine(p) {
+    // −2(x + 5) = (−2)×x + (−2)×(+5) = −2x − 10
+    const parts = p.inner.map(t => factor(p.a) + ' × ' + termParen(t)).join(' + ');
+    const ans = termsHTML(p.inner.map(t => ({ k: p.a * t.k, x: t.x })));
+    return `${prefixHTML(p.a) || ''}(${termsHTML(p.inner)}) = ${parts} = ${ans}`;
+  }
+  function diagnose(p, g) {
+    const e = expected(p), a = p.a, ix = innerX(p), ic = innerC(p);
+    const xOk = g.xk === e.xk, cOk = g.ck === e.ck;
+    const mulX = `${factor(a)} × ${termParen({ k: ix, x: true })} = ${termOnly({ k: e.xk, x: true })}`;
+    const mulC = `${factor(a)} × ${signed(ic)} = ${e.ck < 0 ? MINUS + Math.abs(e.ck) : '+' + e.ck}`;
+    if (xOk && g.ck === -e.ck) return { msg: `${X} 항은 맞았어요. 뒤의 수에도 ${factor(a)}${eul(a)} 곱했나요?`, step: mulC };
+    if (cOk && g.xk === -e.xk) return { msg: `수는 맞았어요. ${X} 항의 부호를 다시 봐요.`, step: mulX };
+    if (g.xk === -e.xk && g.ck === -e.ck) return { msg: a < 0 ? '괄호 앞의 − 부호를 곱하는 걸 잊었어요. 모든 항의 부호가 바뀌어요.' : '부호를 모두 반대로 썼어요.', step: mulX + ', &nbsp;' + mulC };
+    if (Math.abs(a) > 1 && xOk && Math.abs(g.ck) === Math.abs(ic)) return { msg: `${factor(a)}${eul(a)} 뒤의 수에도 곱해야 해요.`, step: mulC };
+    if (Math.abs(a) > 1 && cOk && Math.abs(g.xk) === Math.abs(ix)) return { msg: `${factor(a)}${eul(a)} ${X} 항에도 곱해야 해요.`, step: mulX };
+    if (xOk) return { msg: `${X} 항은 맞았어요. 수를 다시 계산해 봐요.`, step: mulC };
+    if (cOk) return { msg: `수는 맞았어요. ${X} 항을 다시 계산해 봐요.`, step: mulX };
+    return { msg: '괄호 앞의 수를 한 항씩 곱해 봐요.', step: mulX + ', &nbsp;' + mulC };
+  }
+
+  /* ---------- 진행 ---------- */
+  const PRAISE = ['정답!', '완벽해!', '좋아!', '맞았어!'];
+  let level = Math.min(LEVELS, Math.max(1, store.get('level', 1)));
+  let solved = store.get('solved', 0);
+  let streak = 0, firstRun = 0;
+  let cur = null, input = '', wrongs = 0, done = false;
+  let retryQueue = [];          // 틀린 문제는 4문제 뒤에 한 번 더
+  let lastKey = '';
+  let since = 0;
+
+  function paintLevels() {
+    document.querySelectorAll('.lv').forEach(b => b.classList.toggle('is-on', +b.dataset.lv === level));
+  }
+  function paintStats() { $('solved').textContent = solved; $('streak').textContent = streak; }
+  function paintAnswer(state) {
+    const el = $('answer');
+    el.className = 'answer' + (input ? '' : ' is-empty') + (state ? ' is-' + state : '');
+    el.innerHTML = input ? showInput(input) + '<span class="caret"></span>' : '';
+  }
+  function say(html, kind) {
+    const fb = $('feedback');
+    fb.className = 'feedback' + (kind ? ' is-' + kind : '');
+    fb.innerHTML = html || '';
+  }
+  function setCheck(next) {
+    const b = $('check');
+    b.textContent = next ? '다음 ▶' : '확인';
+    b.classList.toggle('is-next', next);
+  }
+
+  function nextProblem() {
+    since++;
+    let p = null;
+    const due = retryQueue.findIndex(r => r.at <= since);
+    if (due >= 0) { p = retryQueue[due].p; retryQueue.splice(due, 1); }
+    else {
+      for (let t = 0; t < 30; t++) { p = makeProblem(level); if (keyOf(p) !== lastKey) break; }
+    }
+    lastKey = keyOf(p);
+    cur = p; input = ''; wrongs = 0; done = false;
+    $('problem').innerHTML = `${prefixHTML(p.a)}(${termsHTML(p.inner)}) <span class="eq">=</span>`;
+    $('ruleEx').innerHTML = '예: ' + stepLine(p.a === -1 ? { a: -2, inner: [{ k: 1, x: true }, { k: 3, x: false }] } : { a: -1, inner: [{ k: 1, x: true }, { k: -4, x: false }] });
+    $('tried').innerHTML = '';
+    say('');
+    setCheck(false);
+    paintAnswer();
+  }
+
+  function check() {
+    if (done) { nextProblem(); return; }
+    const g = parse(input);
+    if (!g.ok) {
+      say(g.why === 'empty' ? '답을 먼저 써 봐요.' : `<div>식 모양을 다시 봐요. 예: ${MINUS}2${X} + 7</div>`, 'retry');
+      return;
+    }
+    const e = expected(cur);
+    if (g.xk === e.xk && g.ck === e.ck) {
+      if (g.xTerms > 1 || g.cTerms > 1) { say(`<div>값은 맞아요! ${X} 항끼리, 수끼리 하나로 정리해서 써 봐요.</div>`, 'retry'); return; }
+      done = true; solved++; store.set('solved', solved);
+      let extra = '';
+      if (wrongs === 0) {
+        streak++; firstRun++;
+        if (firstRun >= 3 && level < LEVELS) { level++; firstRun = 0; store.set('level', level); paintLevels(); extra = '<small>다음 문제부터 한 단계 올라가요.</small>'; }
+      } else { streak = 0; firstRun = 0; }
+      if (g.oneX) extra += `<small>1${X}는 그냥 ${X}로 써도 돼요.</small>`;
+      paintStats();
+      paintAnswer('right');
+      say('<div>' + (wrongs ? '다시 해서 맞혔어요! ' : '') + pick(PRAISE) + '</div>' + extra, 'good');
+      setCheck(true);
+      return;
+    }
+    // 틀림
+    wrongs++; streak = 0; firstRun = 0; paintStats();
+    if (wrongs === 1) retryQueue.push({ p: cur, at: since + 4 });
+    const d = diagnose(cur, g);
+    $('tried').innerHTML = `내 답: <s>${showInput(input)}</s>`;
+    let html = `<div>${d.msg}</div><div class="step">${d.step}</div>`;
+    if (wrongs >= 2) {
+      html = '<div>같이 풀어 봐요. 아래 식을 보고 답을 써 봐요.</div>' + `<div class="step">${stepLine(cur)}</div>`;
+      if (wrongs === 2 && level > 1) { level--; store.set('level', level); paintLevels(); html += '<small>다음 문제는 한 단계 쉬운 걸로 연습해요.</small>'; }
+    }
+    say(html, 'retry');
+    input = '';
+    paintAnswer('wrong');
+  }
+
+  function press(k) {
+    if (k === 'enter') return check();
+    if (done) return;
+    if (k === 'back') input = input.slice(0, -1);
+    else if (input.length < 12) {
+      const last = input.slice(-1);
+      if ((k === '+' || k === '-') && (last === '+' || last === '-')) input = input.slice(0, -1) + k;   // 부호 두 번 → 바꿔 쓰기
+      else if (k === 'x' && last === 'x') return;
+      else input += k;
+    }
+    paintAnswer();
+  }
+
+  $('pad').addEventListener('click', e => {
+    const b = e.target.closest('.key');
+    if (b) press(b.dataset.k);
+  });
+  // 맥: 키보드로도
+  document.addEventListener('keydown', e => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const k = e.key;
+    if (/^\d$/.test(k)) press(k);
+    else if (k === 'x' || k === 'X') press('x');
+    else if (k === '+' || k === '=') press('+');
+    else if (k === '-' || k === '−') press('-');
+    else if (k === 'Backspace') press('back');
+    else if (k === 'Enter' || k === ' ') press('enter');
+    else return;
+    e.preventDefault();
+  });
+  document.querySelectorAll('.lv').forEach(b => b.addEventListener('click', () => {
+    level = +b.dataset.lv; firstRun = 0; store.set('level', level); paintLevels();
+    retryQueue = []; nextProblem();
+  }));
+  $('ruleBtn').addEventListener('click', () => { $('rule').hidden = !$('rule').hidden; });
+  $('rule').addEventListener('click', () => { $('rule').hidden = true; });
+  // 두 번 탭 확대 막기 (iOS)
+  let lastTouch = 0;
+  document.addEventListener('touchend', e => { const n = Date.now(); if (n - lastTouch < 350 && e.target.closest('button')) e.preventDefault(); lastTouch = n; }, { passive: false });
+
+  paintLevels(); paintStats(); nextProblem();
+  window.__dist = { makeProblem, parse, expected, diagnose, stepLine, cur: () => cur };
+})();
+</script>
+</body>
+</html>
