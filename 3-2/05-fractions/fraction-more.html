@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>분수</title>
-<link rel="stylesheet" href="../../shared/tamheom.css?v=21" />
+<link rel="stylesheet" href="../../shared/tamheom.css?v=22" />
 <style>
   /* 문제 문장: 한 줄, 큰 글씨 */
   .fm-q { font-size: 1.9rem; white-space: nowrap; text-align: center; margin: 6px 0 14px; }
@@ -64,7 +64,7 @@
 </style>
 </head>
 <body>
-<script src="../../shared/tamheom.js?v=21"></script>
+<script src="../../shared/tamheom.js?v=22"></script>
 <script>
 (function () {
   const T = Tamheom;
@@ -110,7 +110,7 @@
         }
         const why = last.why();
         last.slots.forEach(s => s.mark('wrong'));
-        ctx.wrong((why ? why + (/[?!.]$/.test(why) ? ' ' : '. ') : '괜찮아, ') + '하나씩 같이 해 보자 🐸');
+        ctx.wrong((why ? why + (/[?!.]$/.test(why) ? ' ' : '. ') : '괜찮아, ') + '하나씩 같이 해 보자');
         last.slots.forEach(s => s.clear());
         mode = 'steps'; cur = 0;
         stepsBox.classList.remove('is-direct');
@@ -417,7 +417,7 @@
       wrongs += 1;
       bt.classList.add('is-wrong'); bt.style.borderColor = '';
       chosen = null; circ.textContent = '';
-      ctx.wrong(wrongs === 1 ? '막대 그림에서 칠한 칸을 비교해 보자 🐸' : undefined);
+      ctx.wrong(wrongs === 1 ? '막대 그림에서 칠한 칸을 비교해 보자' : undefined);
       help.innerHTML = '도움: ' + hint();
     });
   }

@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>다리가 몇 개?</title>
-<link rel="stylesheet" href="../../shared/tamheom.css?v=21" />
+<link rel="stylesheet" href="../../shared/tamheom.css?v=22" />
 <style>
   .legs-q { font-size: 2rem; white-space: nowrap; margin: 6px 0 10px; text-align: center; }
   .pens { display: flex; gap: 14px; justify-content: center; }
@@ -63,7 +63,7 @@
 </style>
 </head>
 <body>
-<script src="../../shared/tamheom.js?v=21"></script>
+<script src="../../shared/tamheom.js?v=22"></script>
 <script>
 (function () {
   const T = Tamheom;
@@ -215,7 +215,7 @@
           if (finalSlot.value === '') { ctx.say('빈칸에 숫자를 써 보자', 'info'); return; }
           if (finalSlot.number === answer) { finalSlot.mark('right'); finalSlot.lock(); ctx.correct('다리 수로 잘 찾았어!'); return; }
           finalSlot.mark('wrong');
-          ctx.wrong('괜찮아, 풀이 단계를 따라 같이 해 보자 🐸');
+          ctx.wrong('괜찮아, 풀이 단계를 따라 같이 해 보자');
           enterSteps();
           return;
         }
