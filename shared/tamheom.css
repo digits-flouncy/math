@@ -312,3 +312,75 @@ body.th {
 .th-narrow .fs-many .th-slot-sm { width: 56px; height: 56px; font-size: 1.7rem; }
 /* 아이폰 가로: 긴 문제 문장이 잘리지 않게 줄바꿈 허용 */
 .th-short .th-q [class$="-q"], .th-short .th-q .q-what, .th-short .th-q .q-line { white-space: normal; }
+
+/* ===== 개구리 친구 (2026-11-26) =====
+   문제 화면 왼쪽 아래 연잎 위의 개구리. 메시지는 개구리 말풍선으로 나옴(토스트 대신).
+   --bd-z: 화면 맞춤 배율(tamheom.js가 넣음) → 개구리도 내용과 같은 비율로 커지고 작아짐.
+   맥·아이패드: 문제 화면 왼쪽에 개구리 자리를 비워 둬서 그림·답 칸을 가리지 않음. */
+:root { --bd-z: 1; --bd-gut: 200px; --bd-w: calc(140px * var(--bd-z)); }
+.th-buddy { display: none; }
+.th-buddy-on .th-buddy {
+  display: block; position: fixed; left: 6px; bottom: 4px; z-index: 40; pointer-events: none;
+  width: var(--bd-w); aspect-ratio: 220 / 240;
+}
+.th-buddy-on .th-play { padding-left: var(--bd-gut); }
+.th-buddy svg { position: absolute; left: 0; width: 100%; height: auto; overflow: visible; display: block; }
+.th-buddy .bd-pad { bottom: 0; }
+.th-buddy .bd-frog { top: 0; transform-origin: 50% 98%; }
+.th-buddy .bd-face { display: none; }
+.th-buddy.is-normal .bd-normal, .th-buddy.is-happy .bd-happy, .th-buddy.is-oops .bd-oops { display: inline; }
+.th-buddy .bd-shadow, .th-buddy .bd-ripple { transform-box: fill-box; transform-origin: center; }
+.th-buddy .bd-ripple { opacity: 0; }
+.th-buddy.is-hop .bd-frog { animation: bd-hop .8s both; }
+.th-buddy.is-hop .bd-shadow { animation: bd-shadow .8s both; }
+.th-buddy.is-hop .bd-ripple { animation: bd-ripple .5s ease-out .6s forwards; }
+@keyframes bd-hop {
+  0%   { transform: none; animation-timing-function: ease-in-out; }
+  12%  { transform: scale(1.12, .84); animation-timing-function: ease-out; }
+  22%  { transform: translateY(-5%) scale(.92, 1.1); animation-timing-function: ease-out; }
+  45%  { transform: translateY(-29%) scale(.96, 1.05); animation-timing-function: ease-in; }
+  68%  { transform: translateY(-3%) scale(.95, 1.06); animation-timing-function: ease-in-out; }
+  76%  { transform: scale(1.14, .82); animation-timing-function: ease-in-out; }
+  86%  { transform: scale(.97, 1.04); animation-timing-function: ease-in-out; }
+  100% { transform: none; }
+}
+@keyframes bd-shadow { 0%, 12%, 76%, 100% { transform: none; } 45% { transform: scale(.55); } }
+@keyframes bd-ripple { 0% { opacity: .85; transform: none; } 100% { opacity: 0; transform: scale(2.1, 2.3); } }
+
+/* 말풍선: 개구리 머리 위, 왼쪽 빈자리 안에서만 (그림·답 칸을 가리지 않음). 꼬리는 개구리 쪽 */
+.th-bubble {
+  position: fixed; z-index: 51; pointer-events: none;
+  left: 8px; bottom: calc(var(--bd-w) * 1.02);
+  width: max-content; max-width: calc(var(--bd-gut) * var(--bd-z) - 4px);
+  padding: calc(10px * var(--bd-z)) calc(16px * var(--bd-z)); border-radius: calc(20px * var(--bd-z));
+  background: #fff; color: var(--ink); border: 4px solid var(--accent);
+  font-size: calc(1.3rem * var(--bd-z)); font-weight: 800; line-height: 1.3; word-break: keep-all;
+  box-shadow: 0 6px 18px rgba(0,0,0,.16);
+  opacity: 0; transform: translateY(8px) scale(.96); transform-origin: 30% 100%; transition: opacity .2s, transform .2s;
+}
+.th-bubble::after {
+  content: ''; position: absolute; left: calc(var(--bd-w) * .42); bottom: calc(-15px * var(--bd-z));
+  border-style: solid; border-width: calc(15px * var(--bd-z)) calc(11px * var(--bd-z)) 0 calc(11px * var(--bd-z));
+  border-color: var(--accent) transparent transparent transparent;
+}
+.th-bubble.is-on { opacity: 1; transform: none; }
+.th-bubble.is-good { border-color: #2f9a55; }
+.th-bubble.is-good::after { border-top-color: #2f9a55; }
+.th-bubble.is-retry { border-color: #d08a2e; }
+.th-bubble.is-retry::after { border-top-color: #d08a2e; }
+.th-bubble small { display: block; font-size: .7em; font-weight: 700; margin-top: 4px; color: var(--ink-soft); }
+
+/* 아이폰 세로: 자리를 비우지 않고, 개구리는 말할 때만 왼쪽 아래에서 올라옴 */
+.th-narrow { --bd-w: 84px; }
+.th-narrow.th-buddy-on .th-play { padding-left: 0; }
+.th-narrow .th-buddy { transform: translateY(115%); transition: transform .25s ease-out; }
+.th-narrow .th-buddy.is-talking { transform: none; }
+.th-narrow .th-bubble { font-size: 1.2rem; padding: 8px 14px; border-radius: 16px; border-width: 3px; bottom: 50px; left: 84px; max-width: calc(100vw - 96px); transform-origin: 0 100%; }
+.th-narrow .th-bubble::after { left: -14px; bottom: 8px; border-width: 9px 14px 9px 0; border-color: transparent var(--accent) transparent transparent; }
+.th-narrow .th-bubble.is-good::after { border-color: transparent #2f9a55 transparent transparent; }
+.th-narrow .th-bubble.is-retry::after { border-color: transparent #d08a2e transparent transparent; }
+.th-short { --bd-w: 92px; --bd-gut: 190px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .th-buddy.is-hop .bd-frog, .th-buddy.is-hop .bd-shadow, .th-buddy.is-hop .bd-ripple { animation: none; }
+}

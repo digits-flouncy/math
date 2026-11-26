@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>들이와 무게</title>
-<link rel="stylesheet" href="../../shared/tamheom.css?v=21" />
+<link rel="stylesheet" href="../../shared/tamheom.css?v=22" />
 <style>
   .ms-q { font-size: 1.85rem; white-space: nowrap; text-align: center; margin: 6px 0 16px; }
   .ms-pic { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
@@ -71,7 +71,7 @@
 </style>
 </head>
 <body>
-<script src="../../shared/tamheom.js?v=21"></script>
+<script src="../../shared/tamheom.js?v=22"></script>
 <script>
 (function () {
   const T = Tamheom;
@@ -106,7 +106,7 @@
         if (last.ok()) { last.slots.forEach(s => { s.mark('right'); s.lock(); }); ctx.correct(opts.praise); return; }
         const why = last.why ? last.why() : '';
         last.slots.forEach(s => s.mark('wrong'));
-        ctx.wrong((why ? why + (/[?!.]$/.test(why) ? ' ' : '. ') : '괜찮아, ') + '하나씩 같이 해 보자 🐸');
+        ctx.wrong((why ? why + (/[?!.]$/.test(why) ? ' ' : '. ') : '괜찮아, ') + '하나씩 같이 해 보자');
         last.slots.forEach(s => s.clear());
         mode = 'steps'; cur = 0;
         stepsBox.classList.remove('is-direct'); last.box.classList.remove('is-now');
@@ -390,7 +390,7 @@
       b.classList.remove('is-picked'); b.classList.add('is-wrong');
       const was = chosen;
       chosen = null; box.textContent = '';
-      ctx.wrong(wrongs === 1 ? `${num} ${was}… 그만큼이면 어떨지 생각해 보자 🐸` : undefined);
+      ctx.wrong(wrongs === 1 ? `${num} ${was}… 그만큼이면 어떨지 생각해 보자` : undefined);
       help.innerHTML = '도움: ' + hint();
     });
   }

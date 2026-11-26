@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>개구리 묶음 분수</title>
-<link rel="stylesheet" href="../../shared/tamheom.css?v=21" />
+<link rel="stylesheet" href="../../shared/tamheom.css?v=22" />
 <style>
 
   /* 개구리 밭: 펜슬·손가락으로 동그라미를 그려 묶는 곳 */
@@ -89,7 +89,7 @@
 </style>
 </head>
 <body>
-<script src="../../shared/tamheom.js?v=21"></script>
+<script src="../../shared/tamheom.js?v=22"></script>
 <script>
 (function () {
   const T = Tamheom;
@@ -602,7 +602,7 @@
       }
       function grouped() {
         drawSay('');
-        showToast('다 묶었어! 이제 세어 보자 🐸', 'info');
+        showToast('다 묶었어! 이제 세어 보자', 'info');
         btns.classList.add('is-off');
       }
 
@@ -648,7 +648,7 @@
             return;
           }
           directSlots.forEach(s => s.mark('wrong'));
-          ctx.wrong((why ? why + (/[?!.]$/.test(why) ? ' ' : '. ') : '괜찮아, ') + '단계를 따라 같이 해 보자 🐸');
+          ctx.wrong((why ? why + (/[?!.]$/.test(why) ? ' ' : '. ') : '괜찮아, ') + '단계를 따라 같이 해 보자');
           if (!field) showField(false);
           enterSteps();
           return;

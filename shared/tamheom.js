@@ -179,7 +179,7 @@
   // 칭찬: 녹음 파일이 있으면 파일, 없으면 목소리
   // 정답: 칭찬 소리 → 끝나면 개구리 점프 소리. 칭찬 파일이 없으면 목소리 + 점프 소리
   function praiseSound(text) {
-    if (!playClip('praise', () => playClip('jump'))) { playClip('jump'); speak(text); }
+    if (!playClip('praise', () => { if (playClip('jump')) buddyHop(); })) { playClip('jump'); speak(text); }
   }
   function finishSound(text) { if (!playClip('finish')) speak(text); }
 
@@ -450,6 +450,7 @@
     function show(name) {
       Object.entries(screens).forEach(([k, el]) => { el.classList.toggle('is-shown', k === name); });
       app.classList.toggle('is-playing', name === 'play');
+      if (cfg.buddy !== false) { buddyMake(); buddyShow(name === 'play'); }
       global.scrollTo(0, 0);
       fitToScreen();
     }
@@ -470,6 +471,7 @@
         const sw = Math.max(app.scrollWidth, app.offsetWidth);
         const zw = Math.max(0.6, Math.min(1, Math.floor(vw / sw * 100) / 100));
         app.style.zoom = String(Math.abs(zw - before) < 0.01 ? before : zw);
+        document.documentElement.style.setProperty('--bd-z', app.style.zoom);
         fitting = false;
         return;
       }
@@ -485,7 +487,15 @@
         app.style.maxWidth = Math.floor(Math.min(vw / z - 24, 1900)) + 'px';
         z = scaleFor();
       }
+      // 내용이 칸보다 넓으면(왼쪽 개구리 자리 때문에 좁아졌을 때 등) 조금 줄이고 틀을 넓힘
+      const overflow = () => Math.max(0, ...[...app.querySelectorAll('.th-screen.is-shown .th-cols > *')]
+        .map(e => e.scrollWidth - e.clientWidth));
+      for (let i = 0, o = overflow(); i < 6 && o > 2 && z > 0.7; i++, o = overflow()) {
+        z = Math.max(0.7, Math.floor(z * app.offsetWidth / (app.offsetWidth + o) * 100) / 100);
+        app.style.maxWidth = Math.floor(Math.min(vw / z - 24, 1900)) + 'px';
+      }
       app.style.zoom = String(Math.abs(z - before) < 0.01 ? before : z);
+      document.documentElement.style.setProperty('--bd-z', app.style.zoom);
       fitting = false;
     }
     let fitQueued = false;
@@ -685,7 +695,7 @@
         }
       }
 
-      feedback(`🐸 ${text}` + (levelMsg ? `<small>${levelMsg}</small>` : ''), 'good');
+      feedback(text + (levelMsg ? `<small>${levelMsg}</small>` : ''), 'good');
       praiseSound(text);
       logResult(first);
       if (thisQ.review) finishReview(thisQ.review.data, first);
@@ -712,8 +722,8 @@
       if (thisQ.done || thisQ !== q) return thisQ.wrongs;
       thisQ.wrongs += 1;
       const text = msg || (thisQ.wrongs === 1
-        ? '괜찮아, 다시 해 보자 🐸'
-        : '같이 보자! 그림을 보고 천천히 다시 해 보자 🐸');
+        ? '괜찮아, 다시 해 보자'
+        : '같이 보자! 그림을 보고 천천히 다시 해 보자');
       feedback(text, 'retry');
       if (thisQ.wrongs === 1 && !thisQ.review) addReview(thisQ.data);
       return thisQ.wrongs;
@@ -880,11 +890,93 @@
   let toastEl = null, toastTimer = null;
   function toast(text, kind) {
     if (!text) return;
+    if (buddyOn && buddyEl) { buddySay(text, kind); return; }
     if (!toastEl) { toastEl = h('div', 'th-toast'); toastEl.setAttribute('role', 'status'); document.body.appendChild(toastEl); }
     toastEl.innerHTML = text;
     toastEl.className = 'th-toast is-on' + (kind === 'retry' ? ' is-retry' : '');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => toastEl.classList.remove('is-on'), kind === 'retry' ? 3500 : 2200);
+  }
+
+  /* ----- 개구리 친구 (2026-11-26): 문제 화면 왼쪽 아래 연잎 위에 앉아 말풍선으로 말함 -----
+   * 정답: 웃는 얼굴 + 폴짝 / 틀림: 놀란 얼굴 / 안내: 기본 얼굴. 바뀐 얼굴은 2초 뒤 기본으로.
+   * 맥·아이패드: 늘 보임(문제 화면 왼쪽에 자리를 비워 둠). 아이폰 세로: 말할 때만 올라옴. */
+  const BUDDY_G = '#7ccc5a', BUDDY_GD = '#5fb145', BUDDY_INK = '#2b3a2b';
+  const BUDDY_PAD = `<svg class="bd-pad" viewBox="0 150 220 90" aria-hidden="true">
+    <ellipse cx="110" cy="208" rx="98" ry="26" fill="#bfe6f2" opacity=".6"/>
+    <path d="M14 200 Q16 172 110 170 Q204 172 206 200 Q204 226 110 228 Q16 226 14 200Z" fill="#2e9a55"/>
+    <path d="M110 199 L160 180 L170 186 Z" fill="#bfe6f2" opacity=".9"/>
+    <path d="M110 199 L60 214 M110 199 L150 216 M110 199 L46 190" stroke="#237d43" stroke-width="3" stroke-linecap="round"/>
+    <ellipse class="bd-shadow" cx="110" cy="196" rx="62" ry="8" fill="#237d43" opacity=".6"/>
+    <ellipse class="bd-ripple" cx="110" cy="198" rx="60" ry="10" fill="none" stroke="#fff" stroke-width="3"/>
+  </svg>`;
+  const BUDDY_FROG = `<svg class="bd-frog" viewBox="0 0 220 200" aria-hidden="true">
+    <ellipse cx="62" cy="178" rx="28" ry="18" fill="${BUDDY_GD}"/><ellipse cx="158" cy="178" rx="28" ry="18" fill="${BUDDY_GD}"/>
+    <path d="M66 180 Q60 120 110 112 Q160 120 154 180 Q110 196 66 180Z" fill="${BUDDY_G}"/>
+    <path d="M86 128 q-4 26 2 48 M134 128 q4 26 -2 48" stroke="${BUDDY_GD}" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M84 192 q-14 -2 -16 -6 q8 -6 26 -2 q4 6 -10 8z" fill="${BUDDY_GD}"/><path d="M136 192 q14 -2 16 -6 q-8 -6 -26 -2 q-4 6 10 8z" fill="${BUDDY_GD}"/>
+    <circle cx="74" cy="187" r="4" fill="${BUDDY_G}"/><circle cx="82" cy="190" r="4" fill="${BUDDY_G}"/><circle cx="146" cy="187" r="4" fill="${BUDDY_G}"/><circle cx="138" cy="190" r="4" fill="${BUDDY_G}"/>
+    <circle cx="78" cy="44" r="26" fill="${BUDDY_G}"/><circle cx="142" cy="44" r="26" fill="${BUDDY_G}"/>
+    <ellipse cx="110" cy="84" rx="74" ry="50" fill="${BUDDY_G}"/>
+    <circle cx="58" cy="94" r="12" fill="#ff8f7e"/><circle cx="162" cy="94" r="12" fill="#ff8f7e"/>
+    <g class="bd-face bd-normal">
+      <circle cx="78" cy="46" r="11" fill="${BUDDY_INK}"/><circle cx="142" cy="46" r="11" fill="${BUDDY_INK}"/>
+      <circle cx="81" cy="42" r="3.5" fill="#fff"/><circle cx="145" cy="42" r="3.5" fill="#fff"/>
+      <path d="M90 94 Q110 110 130 94" fill="none" stroke="${BUDDY_INK}" stroke-width="5" stroke-linecap="round"/>
+    </g>
+    <g class="bd-face bd-happy">
+      <path d="M66 50 Q78 34 90 50" fill="none" stroke="${BUDDY_INK}" stroke-width="6" stroke-linecap="round"/><path d="M130 50 Q142 34 154 50" fill="none" stroke="${BUDDY_INK}" stroke-width="6" stroke-linecap="round"/>
+      <path d="M86 88 Q110 124 134 88 Z" fill="#c9424f" stroke="${BUDDY_INK}" stroke-width="4" stroke-linejoin="round"/><path d="M98 104 q12 10 24 0 q-12 -8 -24 0" fill="#ff8a96"/>
+      <path d="M196 8 l4 9 9 1 -7 6 2 9 -8 -5 -8 5 2 -9 -7 -6 9 -1z" fill="#ffd43b"/><path d="M22 14 l3 6 6 1 -4 4 1 6 -6 -3 -6 3 1 -6 -4 -4 6 -1z" fill="#ffd43b"/>
+    </g>
+    <g class="bd-face bd-oops">
+      <circle cx="78" cy="44" r="15" fill="#fff"/><circle cx="142" cy="44" r="15" fill="#fff"/>
+      <circle cx="78" cy="46" r="6" fill="${BUDDY_INK}"/><circle cx="142" cy="46" r="6" fill="${BUDDY_INK}"/>
+      <ellipse cx="110" cy="100" rx="9" ry="12" fill="#7a2a33"/>
+      <path d="M178 56 q7 11 0 18 q-7 -7 0 -18z" fill="#7cc8f5"/>
+    </g>
+  </svg>`;
+  let buddyEl = null, bubbleEl = null, faceTimer = null, bubbleTimer = null, buddyOn = false;
+  function buddyMake() {
+    if (buddyEl) return;
+    buddyEl = h('div', 'th-buddy is-normal', BUDDY_PAD + BUDDY_FROG);
+    buddyEl.setAttribute('aria-hidden', 'true');
+    bubbleEl = h('div', 'th-bubble');
+    bubbleEl.setAttribute('role', 'status');
+    document.body.appendChild(buddyEl);
+    document.body.appendChild(bubbleEl);
+  }
+  // 문제 화면일 때만 보임. zoom: 화면 맞춤 배율(개구리 크기를 내용과 같은 비율로)
+  function buddyShow(on, zoom) {
+    buddyOn = on;
+    document.documentElement.classList.toggle('th-buddy-on', on);
+    if (!buddyEl) return;
+    if (zoom) document.documentElement.style.setProperty('--bd-z', String(zoom));
+    if (!on) { bubbleEl.classList.remove('is-on'); buddyEl.classList.remove('is-talking'); }
+  }
+  function buddyFace(face) {
+    ['normal', 'happy', 'oops'].forEach(f => buddyEl.classList.toggle('is-' + f, f === face));
+    clearTimeout(faceTimer);
+    if (face !== 'normal') faceTimer = setTimeout(() => buddyFace('normal'), 2000);
+  }
+  function buddyHop() {
+    if (!buddyEl || !buddyOn) return;
+    buddyEl.classList.remove('is-hop');
+    void buddyEl.offsetWidth;   // 애니메이션 다시 시작
+    buddyEl.classList.add('is-hop');
+    buddyFace('happy');
+  }
+  function buddySay(text, kind) {
+    bubbleEl.innerHTML = text;
+    bubbleEl.className = 'th-bubble is-on' + (kind === 'retry' ? ' is-retry' : kind === 'good' ? ' is-good' : '');
+    buddyEl.classList.add('is-talking');
+    if (kind === 'good') buddyHop();
+    else buddyFace(kind === 'retry' ? 'oops' : 'normal');
+    clearTimeout(bubbleTimer);
+    bubbleTimer = setTimeout(() => {
+      bubbleEl.classList.remove('is-on');
+      buddyEl.classList.remove('is-talking');
+    }, kind === 'retry' ? 3500 : 2200);
   }
 
   global.Tamheom = { activity, slot, fraction, keypad, toast, speak, randInt, pick, h, store, josa, josaW, fracHTML, fracJosa };

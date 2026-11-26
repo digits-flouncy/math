@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>나눗셈</title>
-<link rel="stylesheet" href="../../shared/tamheom.css?v=21" />
+<link rel="stylesheet" href="../../shared/tamheom.css?v=22" />
 <style>
   .dv-q { font-size: 2.4rem; white-space: nowrap; text-align: center; margin: 6px 0 14px; font-weight: 900; }
   .dv-pic { display: flex; flex-direction: column; align-items: center; gap: 18px; width: 100%; }
@@ -63,7 +63,7 @@
 </style>
 </head>
 <body>
-<script src="../../shared/tamheom.js?v=21"></script>
+<script src="../../shared/tamheom.js?v=22"></script>
 <script>
 (function () {
   const T = Tamheom;
@@ -87,7 +87,7 @@
         if (last.slots.some(s => s.value === '')) { ctx.say('빈칸에 숫자를 써 보자', 'info'); return; }
         if (last.ok()) { last.slots.forEach(s => { s.mark('right'); s.lock(); }); ctx.correct(opts.praise); return; }
         last.slots.forEach(s => s.mark('wrong'));
-        ctx.wrong('괜찮아, 하나씩 같이 해 보자 🐸');
+        ctx.wrong('괜찮아, 하나씩 같이 해 보자');
         last.slots.forEach(s => s.clear());
         mode = 'steps'; cur = 0;
         stepsBox.classList.remove('is-direct'); last.box.classList.remove('is-now');

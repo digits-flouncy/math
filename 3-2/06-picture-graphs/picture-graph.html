@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>그림그래프</title>
-<link rel="stylesheet" href="../../shared/tamheom.css?v=21" />
+<link rel="stylesheet" href="../../shared/tamheom.css?v=22" />
 <style>
   /* 그림그래프: [이름 | 그림] 표. 큰 그림·작은 그림은 크기로 구분 */
   .pg { width: 100%; background: #fff; border: 3px solid var(--line); border-radius: 18px; padding: 10px 10px 8px; }
@@ -113,7 +113,7 @@
 </style>
 </head>
 <body>
-<script src="../../shared/tamheom.js?v=21"></script>
+<script src="../../shared/tamheom.js?v=22"></script>
 <script>
 (function () {
   const T = Tamheom;
@@ -299,7 +299,7 @@
         if (dSlot.number === spec.fin.ans) { dSlot.mark('right'); dSlot.lock(); done(spec.rightMsg); return; }
         dSlot.mark('wrong');
         const why = spec.fin.why ? spec.fin.why(dSlot.number) : '';
-        ctx.wrong((why ? why + '. ' : '괜찮아, ') + '단계를 따라 같이 해 보자 🐸');
+        ctx.wrong((why ? why + '. ' : '괜찮아, ') + '단계를 따라 같이 해 보자');
         enterSteps();
         return;
       }
