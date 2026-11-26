@@ -9,6 +9,8 @@ index.html                       메인 페이지 (활동 카드 목록)
 3-2/                             3학년 2학기
   01-multiplication/             1단원 곱셈
     animal-legs.html             다리가 몇 개? (돼지와 오리)
+  02-division/                   2단원 나눗셈
+    division.html                ?t=tens 두 자리 수 나누기 · ?t=rem 나머지 나눗셈 · ?t=three 세 자리 수 나누기
   04-capacity-weight/            4단원 들이와 무게
     measure.html                 ?t=convert 단위 바꾸기 · ?t=calc 들이와 무게 계산 · ?t=unit 알맞은 단위
   05-fractions/                  5단원 분수
