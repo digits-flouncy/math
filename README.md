@@ -9,9 +9,12 @@ index.html                       메인 페이지 (활동 카드 목록)
 3-2/                             3학년 2학기
   01-multiplication/             1단원 곱셈
     animal-legs.html             다리가 몇 개? (돼지와 오리)
+  04-capacity-weight/            4단원 들이와 무게
+    measure.html                 ?t=convert 단위 바꾸기 · ?t=calc 들이와 무게 계산 · ?t=unit 알맞은 단위
   05-fractions/                  5단원 분수
     fraction-pizza.html          분수 탐험 (피자)
     fraction-part-whole.html     개구리 묶음 분수
+    fraction-more.html           ?t=length 분수만큼의 길이 · ?t=kinds 가분수와 대분수 · ?t=compare 분수 크기 비교
   06-picture-graphs/             6단원 그림그래프
     picture-graph.html           ?t=read 읽기(알아보기) · ?t=make 그리기(나타내기) · ?t=use 해석하기
 shared/
@@ -19,6 +22,7 @@ shared/
   tamheom.js                     모든 활동이 같이 쓰는 진행 틀 (아래 참고)
 docs/
   autism-teaching-guide.md       활동을 만들 때 따르는 교육 가이드
+  plan.md                        계획: 끝난 것, 지금 있는 활동, 정해진 규칙, 다음 할 일
 src/                             옛 주소 → 새 주소로 자동 이동하는 페이지만 있음 (지우지 마세요)
 ```
 
@@ -30,7 +34,7 @@ src/                             옛 주소 → 새 주소로 자동 이동하�
 2. 경로는 항상 **상대 경로**로 씁니다. 활동 페이지에서 메인으로 가는 링크는 `../../index.html` 입니다.
    (`/`로 시작하는 절대 경로는 Pages 주소 `/math/` 아래에서 깨집니다.)
 3. 공통 틀을 씁니다: `<link rel="stylesheet" href="../../shared/tamheom.css">`, `<script src="../../shared/tamheom.js"></script>` 다음에 `Tamheom.activity({...})`. 기존 세 활동이 예시입니다. `shared/` 파일을 고치면 활동 페이지의 `?v=` 숫자를 하나 올려 주세요. 아이패드가 예전 파일을 기억하지 않고 새 파일을 받습니다.
-4. `index.html`에 카드를 하나 추가합니다.
+4. `index.html`의 `COURSES` 목록에서 해당 단원의 `acts`에 활동을 추가합니다.
 5. 파일을 옮길 때는 옛 위치에 `src/` 안의 파일처럼 자동 이동 페이지를 남겨 둡니다.
 
 ## 공통 틀 (shared/tamheom.js)
