@@ -41,16 +41,34 @@
   .tile-big { font-size: 2.6rem; font-weight: 900; color: var(--c2, #1a6fa8); line-height: 1.1; }
   .tile-title { font-size: 1.35rem; font-weight: 900; color: var(--c2, #222); }
   .tile-desc { font-size: 0.95rem; color: #888; line-height: 1.5; }
+  .tile-text { display: flex; flex-direction: column; align-items: center; gap: 10px; }
   .tile-badge { font-size: 0.85rem; font-weight: 900; padding: 4px 12px; border-radius: 99px; background: var(--c3, #eef4fa); color: var(--c2, #1a6fa8); }
   .units .tile { min-height: 170px; padding: 20px 14px; }
   .unit-no { width: 48px; height: 48px; border-radius: 50%; background: var(--c2, #1a6fa8); color: #fff; font-size: 1.5rem; font-weight: 900; display: flex; align-items: center; justify-content: center; }
   /* 활동이 없는 단원: 회색 대신 연하게 */
   .tile.is-empty { opacity: .45; box-shadow: none; cursor: default; }
   .tile.is-empty .tile-badge { background: #f1f1f1; color: #999; }
-  @media (max-width: 700px) and (orientation: portrait) {
-    .grid.sem { grid-template-columns: 280px; }
-    .grid.units { grid-template-columns: repeat(2, 200px); }
-    .grid.acts { grid-template-columns: 240px; }
+  /* 아이폰 세로(폭 700 이하): 한 줄에 하나씩 크게, 위아래 스크롤 허용 */
+  @media (max-width: 700px) {
+    body { overflow: auto; }
+    #app { justify-content: flex-start; padding: 16px 14px 28px; }
+    .wrap { width: 100%; max-width: 420px; }
+    h1 { font-size: 1.7rem; white-space: normal; }
+    .back { width: 52px; height: 52px; font-size: 1.5rem; }
+    .subtitle { margin-bottom: 18px; }
+    .grid { width: 100%; gap: 14px; }
+    .grid.sem { grid-template-columns: 1fr; }
+    .grid.units { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .units .tile { min-height: 140px; }
+    .grid.acts { grid-template-columns: 1fr; }
+    .acts .tile { flex-direction: row; justify-content: flex-start; text-align: left; padding: 14px 18px; gap: 16px; }
+    .acts .tile-emoji { font-size: 2.6rem; flex: none; }
+    .acts .tile-text { align-items: flex-start; gap: 4px; min-width: 0; }
+  }
+  /* 아이폰 가로(높이 500 이하): 위아래 스크롤 허용 */
+  @media (max-height: 500px) and (min-width: 701px) {
+    body { overflow: auto; }
+    #app { justify-content: flex-start; }
   }
 </style>
 </head>
@@ -151,7 +169,7 @@
         const t = el('a', 'tile');
         t.href = a.href;
         colors(t, a);
-        t.innerHTML = `<div class="tile-emoji">${a.emoji}</div><div class="tile-title">${a.title}</div><div class="tile-desc">${a.desc}</div>`;
+        t.innerHTML = `<div class="tile-emoji">${a.emoji}</div><div class="tile-text"><div class="tile-title">${a.title}</div><div class="tile-desc">${a.desc}</div></div>`;
         g.appendChild(t);
       });
       wrap.appendChild(g);
@@ -162,6 +180,8 @@
   // 큰 화면(가로 아이패드 13인치 등)에서는 키우고, 작은 화면에서는 줄여서 스크롤 없이 한 화면에.
   function fit() {
     wrap.style.zoom = '1';
+    // 아이폰(세로 폭 700 이하, 가로 높이 500 이하): 줄이지 않고 스크롤
+    if (innerWidth <= 700 || innerHeight <= 500) return;
     const r = wrap.getBoundingClientRect();
     const z = Math.max(0.5, Math.min(1.6, (innerHeight - 48) / r.height, (innerWidth - 40) / r.width));
     wrap.style.zoom = String(Math.floor(z * 100) / 100);

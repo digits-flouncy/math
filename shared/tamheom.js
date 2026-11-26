@@ -341,6 +341,22 @@
     }
   });
 
+  /* ---------- 기기 화면 모드 ----------
+   * 맥·아이패드(넓은 화면): 스크롤 없이 한 화면에 맞춤 (확정 규칙).
+   * 아이폰 세로(폭 700 이하): html.th-narrow → 위아래로 쌓는 배치, 위아래 스크롤 허용.
+   * 아이폰 가로(높이 500 이하): html.th-short → 넓은 배치 그대로, 위아래 스크롤 허용. */
+  function screenMode() {
+    const root = document.documentElement;
+    const narrow = global.innerWidth <= 700;
+    const short = !narrow && global.innerHeight <= 500;
+    root.classList.toggle('th-narrow', narrow);
+    root.classList.toggle('th-short', short);
+    root.classList.toggle('th-scroll', narrow || short);
+    return narrow || short;
+  }
+  screenMode();
+  global.addEventListener('resize', screenMode);
+
   /* ---------- 활동 진행 틀 ---------- */
   function activity(cfg) {
     const id = cfg.id;
@@ -449,6 +465,14 @@
       app.style.zoom = '1';
       app.style.maxWidth = '';
       const vh = global.innerHeight, vw = global.innerWidth;
+      if (screenMode()) {
+        // 아이폰: 높이는 맞추지 않고(위아래 스크롤), 옆으로 넘칠 때만 줄임
+        const sw = Math.max(app.scrollWidth, app.offsetWidth);
+        const zw = Math.max(0.6, Math.min(1, Math.floor(vw / sw * 100) / 100));
+        app.style.zoom = String(Math.abs(zw - before) < 0.01 ? before : zw);
+        fitting = false;
+        return;
+      }
       const scaleFor = () => {
         const h = app.offsetHeight, w = app.offsetWidth;
         let z = Math.min(1.5, (vh - 2) / h);

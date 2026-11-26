@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>분수 피자</title>
-<link rel="stylesheet" href="../../shared/tamheom.css?v=20" />
+<link rel="stylesheet" href="../../shared/tamheom.css?v=21" />
 <style>
   .pizza, .bar { display: block; margin: 6px auto; touch-action: manipulation; }
   .pizza { width: min(340px, 70vw); height: auto; }
@@ -24,10 +24,13 @@
   .th-answer-col .th-bottom-play { display: none; }
   .th-play .th-cols { grid-template-columns: minmax(0, 1.3fr) minmax(450px, 1fr); }
   .big-frac { font-size: 2.4rem; font-weight: 900; color: var(--accent); text-align: center; }
+  /* 아이폰 세로 */
+  .th-narrow .pz-q { white-space: normal; font-size: 1.4rem; }
+  .th-narrow .color-side .th-check { width: min(300px, 100%); height: 68px; font-size: 1.5rem; }
 </style>
 </head>
 <body>
-<script src="../../shared/tamheom.js?v=20"></script>
+<script src="../../shared/tamheom.js?v=21"></script>
 <script>
 (function () {
   const T = Tamheom;
