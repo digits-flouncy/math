@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>그림그래프</title>
-<link rel="stylesheet" href="../../shared/tamheom.css?v=20" />
+<link rel="stylesheet" href="../../shared/tamheom.css?v=21" />
 <style>
   /* 그림그래프: [이름 | 그림] 표. 큰 그림·작은 그림은 크기로 구분 */
   .pg { width: 100%; background: #fff; border: 3px solid var(--line); border-radius: 18px; padding: 10px 10px 8px; }
@@ -102,10 +102,18 @@
   .intro-steps li { list-style: none; }
   .intro-steps .ic-l { font-size: 30px; } .intro-steps .ic-m { font-size: 24px; } .intro-steps .ic-s { font-size: 18px; }
   @media (max-width: 760px) { .intro-ex { grid-template-columns: 1fr; } }
+  /* 아이폰 세로 */
+  .th-narrow .pg-tools { flex-wrap: wrap; white-space: normal; gap: 8px; }
+  .th-narrow .tool { min-height: 56px; padding: 4px 10px; font-size: 1.05rem; }
+  .th-narrow .pg-cat { font-size: 1.15rem; padding: 0 6px; }
+  .th-narrow .th-play .th-q { padding-left: 8px; padding-right: 8px; }
+  .th-narrow .th-oneline .th-answer-col .choice-pad { grid-template-columns: repeat(2, minmax(0, 150px)); }
+  .th-narrow .th-oneline .th-answer-col .choice-pad .th-key { font-size: 1.2rem; height: 64px; }
+  .th-narrow .th-play .th-cols > .th-answer-col { padding-left: 0; }
 </style>
 </head>
 <body>
-<script src="../../shared/tamheom.js?v=20"></script>
+<script src="../../shared/tamheom.js?v=21"></script>
 <script>
 (function () {
   const T = Tamheom;

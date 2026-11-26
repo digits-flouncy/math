@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>다리가 몇 개?</title>
-<link rel="stylesheet" href="../../shared/tamheom.css?v=20" />
+<link rel="stylesheet" href="../../shared/tamheom.css?v=21" />
 <style>
   .legs-q { font-size: 2rem; white-space: nowrap; margin: 6px 0 10px; text-align: center; }
   .pens { display: flex; gap: 14px; justify-content: center; }
@@ -50,10 +50,20 @@
   .steps { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
   .step { border: 2px solid var(--line); border-radius: 16px; padding: 6px 12px; }
   .step-label { font-weight: 800; color: var(--accent); margin-bottom: 4px; }
+  /* 아이폰 세로 */
+  .th-narrow .legs-q { white-space: normal; font-size: 1.4rem; }
+  .th-narrow .pens { gap: 8px; }
+  .th-narrow .pen { width: auto; flex: 1 1 0; min-width: 0; padding: 6px; }
+  .th-narrow .lg-row { flex-wrap: wrap; justify-content: center; row-gap: 2px; }
+  .th-narrow .lg-label { min-width: 0; font-size: 1rem; flex-basis: 100%; text-align: center; }
+  .th-narrow .calc { font-size: 1.15rem; gap: 2px; }
+  .th-narrow .legs-steps .th-slot-sm { width: 42px; height: 46px; font-size: 1.35rem; }
+  .th-narrow .lg-final { font-size: 1.1rem; }
+  .th-narrow .lg-final .th-slot { width: 54px; height: 52px; font-size: 1.6rem; }
 </style>
 </head>
 <body>
-<script src="../../shared/tamheom.js?v=20"></script>
+<script src="../../shared/tamheom.js?v=21"></script>
 <script>
 (function () {
   const T = Tamheom;
